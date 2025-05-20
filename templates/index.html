@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoByte Downloader</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        :root {
+            /* Dark theme (default) */
+            --primary-neon: #00ffdd;
+            --primary-glow: #00c3ff;
+            --dark-bg: #0a0b1a;
+            --darker-bg: #070817;
+            --card-bg: rgba(15, 20, 40, 0.7);
+            --highlight-color: #fe01fe;
+            --text-color: #e0e0ff;
+            --text-secondary: #a0a0d0;
+            --input-bg: rgba(20, 25, 45, 0.7);
+            --input-border: rgba(0, 195, 255, 0.2);
+            --box-shadow: 0 0 20px rgba(0, 195, 255, 0.2);
+            --transition-speed: 0.3s;
+        }
+        
+        /* Light theme */
+        :root.light-theme {
+            --primary-neon: #0066ff;
+            --primary-glow: #0099ff;
+            --dark-bg: #f0f5ff;
+            --darker-bg: #e0ecff;
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --highlight-color: #5928e5;
+            --text-color: #0a1830;
+            --text-secondary: #3a5277;
+            --input-bg: rgba(255, 255, 255, 0.9);
+            --input-border: rgba(0, 102, 255, 0.3);
+            --box-shadow: 0 5px 15px rgba(0, 102, 255, 0.15);
+        }
+        
+        :root.light-theme body {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+        }
+        
+        :root.light-theme body::before {
+            background: linear-gradient(90deg, #0066ff, #5928e5);
+            box-shadow: 0 0 10px rgba(0, 102, 255, 0.4);
+        }
+        
+        :root.light-theme .download-container {
+            box-shadow: 0 5px 20px rgba(0, 102, 255, 0.2);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+        }
+        
+        :root.light-theme .url-input {
+            background-color: #ffffff;
+            color: #0a1830;
+        }
+        
+        :root.light-theme .url-input::placeholder {
+            color: #7a8eaa;
+        }
+        
+        :root.light-theme .url-input:focus {
+            background-color: #ffffff;
+            box-shadow: inset 0 0 5px rgba(0, 102, 255, 0.3);
+        }
+        
+        :root.light-theme .download-btn, 
+        :root.light-theme .btn-tech,
+        :root.light-theme .theme-toggle-label {
+            background: linear-gradient(45deg, #0066ff, #0099ff);
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 102, 255, 0.3);
+        }
+        
+        :root.light-theme .download-btn:hover,
+        :root.light-theme .btn-tech:hover {
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.5);
+        }
+        
+        :root.light-theme .neon-text {
+            color: #0066ff;
+            text-shadow: 0 0 5px rgba(0, 102, 255, 0.5);
+        }
+        
+        :root.light-theme .logo-icon {
+            color: #0066ff;
+            filter: drop-shadow(0 0 5px rgba(0, 102, 255, 0.5));
+        }
+        
+        :root.light-theme .supported-platforms-title::after,
+        :root.light-theme .main-title::after,
+        :root.light-theme .features-title::after {
+            background: linear-gradient(90deg, transparent, #0066ff, transparent);
+        }
+        
+        :root.light-theme .features-title,
+        :root.light-theme .supported-platforms-title {
+            color: #0a1830;
+        }
+        
+        :root.light-theme .promo-section::before {
+            background: radial-gradient(circle at center, rgba(0, 102, 255, 0.08) 0%, transparent 70%);
+        }
+        
+        :root.light-theme .promo-card {
+            background-color: white;
+            box-shadow: 0 5px 15px rgba(0, 102, 255, 0.1);
+            border: 1px solid rgba(0, 102, 255, 0.1);
+        }
+        
+        :root.light-theme .promo-card::before {
+            background: linear-gradient(to bottom, #0066ff, transparent);
+        }
+        
+        :root.light-theme .promo-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 102, 255, 0.2);
+            transform: translateY(-5px);
+        }
+        
+        :root.light-theme .promo-icon {
+            color: #0066ff;
+            filter: drop-shadow(0 0 5px rgba(0, 102, 255, 0.3));
+        }
+        
+        :root.light-theme .platform-icon {
+            filter: brightness(0.9);
+            opacity: 0.7;
+        }
+        
+        :root.light-theme .platform-icon:hover {
+            filter: brightness(1) drop-shadow(0 0 5px #0066ff);
+            opacity: 1;
+        }
+        
+        :root.light-theme .video-info,
+        :root.light-theme .log-container,
+        :root.light-theme .completed-downloads,
+        :root.light-theme .options-container {
+            background-color: white;
+            box-shadow: 0 5px 15px rgba(0, 102, 255, 0.1);
+            border: 1px solid rgba(0, 102, 255, 0.1);
+        }
+        
+        :root.light-theme .progress {
+            background-color: #e0ecff;
+        }
+        
+        :root.light-theme .progress-bar {
+            background: linear-gradient(90deg, #0066ff, #0099ff);
+        }
+        
+        :root.light-theme .download-item {
+            background-color: #f7faff;
+            border-left: 3px solid #0066ff;
+        }
+        
+        :root.light-theme .footer {
+            color: #3a5277;
+        }
+        
+        :root.light-theme .footer::before {
+            background: linear-gradient(90deg, transparent, #0066ff, transparent);
+        }
+        
+        @font-face {
+            font-family: 'Cyberpunk';
+            src: url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+        }
+        
+        body {
+            font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            transition: background var(--transition-speed) ease;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary-neon), var(--highlight-color));
+            z-index: 1000;
+            transition: background var(--transition-speed) ease;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjMTA0MGEwIiBmaWxsLW9wYWNpdHk9IjAuMDUiPjwvcmVjdD4KPC9zdmc+');
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.4;
+            transition: opacity var(--transition-speed) ease;
+        }
+        
+        :root.light-theme body::after {
+            opacity: 0.1;
+        }
+
+        * {
+            transition: color var(--transition-speed) ease,
+                        background-color var(--transition-speed) ease,
+                        border-color var(--transition-speed) ease,
+                        box-shadow var(--transition-speed) ease;
+        }
+        
+        .container {
+            max-width: 1200px;
+            padding: 20px;
+        }
+        
+        .header {
+            padding: 20px 40px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 28px;
+            font-weight: bold;
+            text-decoration: none;
+            color: var(--text-color);
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 10px rgba(0, 255, 221, 0.5);
+        }
+        
+        .logo-icon {
+            color: var(--primary-neon);
+            margin-right: 10px;
+            filter: drop-shadow(0 0 5px var(--primary-neon));
+        }
+        
+        .neon-text {
+            position: relative;
+            color: var(--primary-neon);
+            text-shadow: 0 0 10px var(--primary-neon);
+        }
+        
+        .main-content {
+            text-align: center;
+            padding: 60px 20px;
+            position: relative;
+        }
+        
+        .tech-glow {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 195, 255, 0.15) 0%, rgba(0, 255, 221, 0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -70%);
+            z-index: -1;
+            filter: blur(20px);
+        }
+        
+        .main-title {
+            font-size: 3.5rem;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .main-title::after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary-neon), transparent);
+            bottom: -10px;
+            left: 20%;
+        }
+        
+        .download-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            box-shadow: 0 0 20px rgba(0, 195, 255, 0.2), 
+                        0 0 40px rgba(0, 255, 221, 0.1);
+            border: 1px solid rgba(0, 195, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .url-input {
+            flex-grow: 1;
+            background-color: rgba(10, 15, 35, 0.8);
+            border: none;
+            padding: 18px 25px;
+            font-size: 16px;
+            color: var(--text-color);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .url-input:focus {
+            background-color: rgba(15, 25, 50, 0.9);
+            box-shadow: inset 0 0 5px rgba(0, 255, 221, 0.5);
+        }
+        
+        .url-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.7;
+        }
+        
+        .download-btn {
+            background: linear-gradient(45deg, var(--primary-glow), var(--primary-neon));
+            color: #000;
+            border: none;
+            padding: 0 30px;
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            text-transform: uppercase;
+        }
+        
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: 0.5s;
+        }
+        
+        .download-btn:hover::before {
+            left: 100%;
+        }
+        
+        .download-btn:hover {
+            box-shadow: 0 0 15px var(--primary-neon);
+            transform: translateY(-2px);
+        }
+        
+        .download-btn i {
+            margin-left: 10px;
+        }
+        
+        .security-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        .security-badge i {
+            margin-right: 8px;
+            color: var(--primary-neon);
+        }
+        
+        .options-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0, 195, 255, 0.1);
+            border: 1px solid rgba(0, 195, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: none;
+            transition: all 0.3s ease;
+        }
+        
+        .form-check-input {
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-neon);
+            border-color: var(--primary-neon);
+        }
+        
+        .form-select {
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+        }
+        
+        .form-select:focus {
+            border-color: var(--primary-neon);
+            box-shadow: 0 0 0 0.25rem rgba(0, 195, 255, 0.25);
+        }
+        
+        .form-label {
+            color: var(--text-color);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        
+        .video-info {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: left;
+            box-shadow: 0 0 20px rgba(0, 195, 255, 0.1);
+            border: 1px solid rgba(0, 195, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: none;
+            transition: all 0.3s ease;
+        }
+        
+        .progress {
+            height: 8px;
+            background-color: var(--input-bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary-glow), var(--primary-neon));
+        }
+        
+        .log-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            box-shadow: 0 0 20px rgba(0, 195, 255, 0.1);
+            border: 1px solid rgba(0, 195, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: none;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+        }
+        
+        .log-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .log-container::-webkit-scrollbar-track {
+            background: var(--input-bg);
+            border-radius: 3px;
+        }
+        
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--primary-glow);
+            border-radius: 3px;
+        }
+        
+        .completed-downloads {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 0 20px rgba(0, 195, 255, 0.1);
+            border: 1px solid rgba(0, 195, 255, 0.1);
+            backdrop-filter: blur(10px);
+            display: none;
+            transition: all 0.3s ease;
+        }
+        
+        .section-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .section-title h5 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        .download-item {
+            background-color: rgba(20, 30, 60, 0.4);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 15px;
+            border-left: 3px solid var(--primary-neon);
+            transition: all 0.3s ease;
+        }
+        
+        .download-item:hover {
+            background-color: rgba(25, 35, 70, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-tech {
+            background: linear-gradient(45deg, var(--primary-glow), var(--primary-neon));
+            color: #000;
+            border: none;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-tech::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: 0.5s;
+        }
+        
+        .btn-tech:hover::before {
+            left: 100%;
+        }
+        
+        .btn-tech:hover {
+            box-shadow: 0 0 10px var(--primary-neon);
+            transform: translateY(-2px);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            position: relative;
+        }
+        
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary-neon), transparent);
+        }
+        
+        .platform-icons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 50px;
+        }
+        
+        .supported-platforms-title {
+            color: var(--text-color);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            font-weight: 600;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .supported-platforms-title::after {
+            content: '';
+            position: absolute;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-neon), transparent);
+            bottom: -8px;
+            left: 25%;
+        }
+        
+        .platform-icons-container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 10px 0 30px;
+        }
+        
+        .platform-icon {
+            width: 70px;
+            height: 70px;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+            margin: 0 15px;
+        }
+        
+        .platform-icon:hover {
+            opacity: 1;
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 5px var(--primary-neon));
+        }
+        
+        .promo-section {
+            padding: 40px 0 60px;
+            position: relative;
+        }
+        
+        .promo-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(0, 195, 255, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .features-title {
+            color: var(--text-color);
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+            position: relative;
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .features-title::after {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary-neon), transparent);
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .promo-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            height: 100%;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 195, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 195, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+        
+        :root.light-theme .promo-card {
+            box-shadow: 0 5px 15px rgba(0, 120, 240, 0.1);
+            border: 1px solid rgba(0, 120, 240, 0.1);
+        }
+        
+        .promo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--primary-neon), transparent);
+        }
+        
+        :root.light-theme .neon-text {
+            color: var(--primary-neon);
+            text-shadow: 0 0 5px rgba(0, 120, 240, 0.5);
+        }
+        
+        :root.light-theme .logo-icon {
+            color: var(--primary-neon);
+            filter: drop-shadow(0 0 5px rgba(0, 120, 240, 0.5));
+        }
+        
+        :root.light-theme .promo-icon {
+            color: var(--primary-neon);
+            filter: drop-shadow(0 0 5px rgba(0, 120, 240, 0.3));
+        }
+        
+        :root.light-theme .platform-icon {
+            filter: brightness(0.9);
+        }
+        
+        :root.light-theme .platform-icon:hover {
+            filter: brightness(1) drop-shadow(0 0 5px var(--primary-neon));
+        }
+        
+        .promo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 195, 255, 0.15);
+        }
+        
+        .promo-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: var(--primary-neon);
+            filter: drop-shadow(0 0 5px var(--primary-neon));
+        }
+        
+        .promo-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: var(--text-color);
+            letter-spacing: 0.5px;
+        }
+        
+        .promo-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 0;
+            font-size: 0.95rem;
+        }
+        
+        @media (max-width: 768px) {
+            .download-container {
+                flex-direction: column;
+            }
+            
+            .download-btn {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .main-title {
+                font-size: 2.5rem;
+            }
+            
+            .platform-icon {
+                width: 50px;
+                height: 50px;
+                margin: 0 10px;
+            }
+            
+            .platform-icons-container {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .promo-card {
+                padding: 20px;
+                margin-bottom: 15px;
+            }
+            
+            .promo-icon {
+                font-size: 2rem;
+                margin-bottom: 15px;
+            }
+            
+            .promo-card h3 {
+                font-size: 1.2rem;
+                margin-bottom: 10px;
+            }
+            
+            .promo-card p {
+                font-size: 0.9rem;
+            }
+            
+            .col-md-4 {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .promo-section .container {
+                padding-left: 25px;
+                padding-right: 25px;
+            }
+            
+            .supported-platforms-title {
+                font-size: 1.5rem;
+            }
+        }
+        
+        /* Theme Toggle */
+        .theme-toggle-wrapper {
+            display: flex;
+            align-items: center;
+        }
+        
+        .theme-toggle {
+            position: relative;
+            margin-left: 20px;
+        }
+        
+        .theme-toggle-checkbox {
+            opacity: 0;
+            position: absolute;
+        }
+        
+        .theme-toggle-label {
+            background: linear-gradient(45deg, var(--primary-glow), var(--primary-neon));
+            border-radius: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px;
+            position: relative;
+            height: 26px;
+            width: 55px;
+            transform: scale(1);
+            transition: transform 0.2s ease;
+        }
+        
+        .theme-toggle-label:hover {
+            transform: scale(1.05);
+        }
+        
+        .theme-toggle-label .fa-sun {
+            color: #fff;
+            font-size: 12px;
+            margin-left: 4px;
+        }
+        
+        .theme-toggle-label .fa-moon {
+            color: #fff;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        
+        .ball {
+            background-color: #fff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            height: 22px;
+            width: 22px;
+            transform: translateX(0px);
+            transition: transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .theme-toggle-checkbox:checked + .theme-toggle-label .ball {
+            transform: translateX(29px);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        }
+        
+        /* Animation Classes */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes glow {
+            0% { filter: drop-shadow(0 0 2px var(--primary-neon)); }
+            50% { filter: drop-shadow(0 0 8px var(--primary-neon)); }
+            100% { filter: drop-shadow(0 0 2px var(--primary-neon)); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .slow-glow {
+            animation: glow 3s infinite;
+        }
+        
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="logo">
+            <i class="fas fa-bolt logo-icon"></i>
+            <span>Neo<span class="neon-text">Byte</span></span>
+        </a>
+        <div class="theme-toggle-wrapper">
+            <div class="theme-toggle">
+                <input type="checkbox" id="theme-toggle-checkbox" class="theme-toggle-checkbox">
+                <label for="theme-toggle-checkbox" class="theme-toggle-label">
+                    <i class="fas fa-sun"></i>
+                    <i class="fas fa-moon"></i>
+                    <div class="ball"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="tech-glow"></div>
+        <h1 class="main-title">YOUTUBE <span class="neon-text">VIDEO DOWNLOADER</span></h1>
+        
+        <div class="download-container">
+            <input type="text" id="url" class="url-input" placeholder="Paste your YouTube video link here" required>
+            <button id="download-button" class="download-btn">DOWNLOAD <i class="fas fa-bolt"></i></button>
+        </div>
+        
+        <div class="security-badge">
+            <i class="fas fa-shield-alt"></i> Secure downloads with advanced encryption
+        </div>
+        
+        <div class="options-container" id="options-container">
+            <div class="row mb-3">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <label class="form-label">Download Type</label>
+                    <div class="d-flex">
+                        <div class="form-check me-4">
+                            <input class="form-check-input" type="radio" name="download_type" id="video-type" value="video" checked>
+                            <label class="form-check-label" for="video-type">Video</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="download_type" id="audio-type" value="audio">
+                            <label class="form-check-label" for="audio-type">Audio Only</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="resolution" class="form-label">Video Quality</label>
+                    <select class="form-select" id="resolution">
+                        <option value="highest">Highest</option>
+                        <option value="720p">720p</option>
+                        <option value="480p">480p</option>
+                        <option value="360p">360p</option>
+                        <option value="lowest">Lowest</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div id="video-info" class="video-info">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4 id="video-title">Title</h4>
+                    <p>By <span id="video-author">Author</span> • <span id="video-duration">Duration</span></p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <span id="progress-text" class="badge bg-info">0%</span>
+                </div>
+            </div>
+            
+            <div class="progress">
+                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="log-container" id="log-container">
+            <div id="messages"></div>
+        </div>
+        
+        <div class="completed-downloads" id="completed-downloads">
+            <div class="section-title">
+                <h5><i class="fas fa-check-circle me-2"></i> Completed Downloads</h5>
+                <button id="refresh-downloads" class="btn btn-sm btn-tech">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+            </div>
+            <div id="downloads-list">
+                <p class="text-center text-secondary">No completed downloads yet</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <div class="platform-icons">
+            <h3 class="supported-platforms-title">Supported Platforms</h3>
+            <div class="platform-icons-container">
+                <img src="https://img.icons8.com/ios-filled/100/00ffdd/windows-10.png" alt="Windows" class="platform-icon">
+                <img src="https://img.icons8.com/ios-filled/100/00ffdd/mac-os.png" alt="Mac" class="platform-icon">
+                <img src="https://img.icons8.com/ios-filled/100/00ffdd/android.png" alt="Android" class="platform-icon">
+                <img src="https://img.icons8.com/ios-filled/100/00ffdd/linux.png" alt="Linux" class="platform-icon">
+            </div>
+        </div>
+
+        <div class="promo-section">
+            <div class="container">
+                <h3 class="features-title">Key Features</h3>
+                <div class="row">
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="promo-card">
+                            <i class="fas fa-crown promo-icon"></i>
+                            <h3>Premium Experience</h3>
+                            <p>Experience the best YouTube video downloading with our top-rated tool - completely free.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="promo-card">
+                            <i class="fas fa-sliders-h promo-icon"></i>
+                            <h3>Quality Options</h3>
+                            <p>Download content in your preferred quality: from MP4 to MP3, standard to Full HD resolution.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="promo-card">
+                            <i class="fas fa-mobile-alt promo-icon"></i>
+                            <h3>Device Compatibility</h3>
+                            <p>Perfect compatibility across all devices - grab your favorite videos on desktop or mobile.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="promo-card">
+                            <i class="fas fa-mouse-pointer promo-icon"></i>
+                            <h3>Simple Conversion</h3>
+                            <p>Convert YouTube videos with just a few simple clicks using our streamlined platform.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="promo-card">
+                            <i class="fas fa-bolt promo-icon"></i>
+                            <h3>Lightning Fast</h3>
+                            <p>Get lightning-fast downloads and unlimited video access without spending a dime.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="promo-card">
+                            <i class="fas fa-book promo-icon"></i>
+                            <h3>Expert Guide</h3>
+                            <p>Master YouTube downloading with our comprehensive guide and expert tips.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <p>NeoByte Downloader - The fastest way to download your favorite content</p>
+        <p class="small">© 2025 NeoByte Technologies. All rights reserved.</p>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlInput = document.getElementById('url');
+            const downloadButton = document.getElementById('download-button');
+            const optionsContainer = document.getElementById('options-container');
+            const messagesContainer = document.getElementById('messages');
+            const logContainer = document.getElementById('log-container');
+            const videoInfo = document.getElementById('video-info');
+            const videoTitle = document.getElementById('video-title');
+            const videoAuthor = document.getElementById('video-author');
+            const videoDuration = document.getElementById('video-duration');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const downloadsList = document.getElementById('downloads-list');
+            const completedDownloads = document.getElementById('completed-downloads');
+            const refreshDownloadsBtn = document.getElementById('refresh-downloads');
+            const videoTypeRadio = document.getElementById('video-type');
+            const audioTypeRadio = document.getElementById('audio-type');
+            const resolutionSelect = document.getElementById('resolution');
+            const themeToggle = document.getElementById('theme-toggle-checkbox');
+            
+            let currentDownloadId = null;
+            let statusCheckInterval = null;
+            
+            // Theme toggle functionality
+            themeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    document.documentElement.classList.add('light-theme');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    document.documentElement.classList.remove('light-theme');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+            
+            // Check for saved theme preference
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.add('light-theme');
+                themeToggle.checked = true;
+            }
+            
+            // Add animations to elements
+            const mainTitle = document.querySelector('.main-title');
+            const logoIcon = document.querySelector('.logo-icon');
+            const neonText = document.querySelector('.neon-text');
+            const promoCards = document.querySelectorAll('.promo-card');
+            const platformIcons = document.querySelectorAll('.platform-icon');
+            
+            // Add glow animation to logo and neon text
+            logoIcon.classList.add('slow-glow');
+            neonText.classList.add('slow-glow');
+            
+            // Add fade-in animation to main title
+            mainTitle.classList.add('fade-in');
+            
+            // Add staggered fade-in to promo cards
+            promoCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('fade-in');
+                }, 100 * index);
+            });
+            
+            // Add float animation to platform icons
+            platformIcons.forEach((icon, index) => {
+                setTimeout(() => {
+                    icon.classList.add('float-animation');
+                }, 300 * index);
+            });
+            
+            // Show options when URL input is focused
+            urlInput.addEventListener('focus', function() {
+                optionsContainer.style.display = 'block';
+                optionsContainer.classList.add('fade-in');
+            });
+            
+            // Download button click
+            downloadButton.addEventListener('click', function() {
+                const url = urlInput.value.trim();
+                
+                if (!url) {
+                    alert('Please enter a YouTube URL');
+                    return;
+                }
+                
+                // Show log container with animation
+                logContainer.style.display = 'block';
+                logContainer.classList.add('fade-in');
+                
+                // Get selected options
+                const downloadType = videoTypeRadio.checked ? 'video' : 'audio';
+                const resolution = resolutionSelect.value;
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('url', url);
+                formData.append('download_type', downloadType);
+                formData.append('resolution', resolution);
+                
+                // Add loading animation to button
+                downloadButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
+                downloadButton.disabled = true;
+                
+                // Make the request
+                fetch('/download', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Restore button
+                    downloadButton.innerHTML = 'DOWNLOAD <i class="fas fa-bolt"></i>';
+                    downloadButton.disabled = false;
+                    
+                    if (data.error) {
+                        addMessage('Error: ' + data.error);
+                        return;
+                    }
+                    
+                    // Clear previous messages
+                    messagesContainer.innerHTML = '';
+                    progressBar.style.width = '0%';
+                    progressText.textContent = '0%';
+                    
+                    // Store the download ID
+                    currentDownloadId = data.download_id;
+                    
+                    // Start checking status
+                    if (statusCheckInterval) {
+                        clearInterval(statusCheckInterval);
+                    }
+                    
+                    statusCheckInterval = setInterval(checkDownloadStatus, 1000);
+                    addMessage('⚡ Download initiated. Fetching video data...');
+                })
+                .catch(error => {
+                    // Restore button
+                    downloadButton.innerHTML = 'DOWNLOAD <i class="fas fa-bolt"></i>';
+                    downloadButton.disabled = false;
+                    
+                    addMessage('Error: ' + error.message);
+                });
+            });
+            
+            // Check download status
+            function checkDownloadStatus() {
+                if (!currentDownloadId) return;
+                
+                fetch(`/status/${currentDownloadId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            addMessage('Error: ' + data.error);
+                            clearInterval(statusCheckInterval);
+                            return;
+                        }
+                        
+                        // Update progress
+                        const progress = data.progress.toFixed(1);
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `${progress}%`;
+                        
+                        // Update video info
+                        if (data.title && videoTitle.textContent === 'Title') {
+                            videoInfo.style.display = 'block';
+                            videoInfo.classList.add('fade-in');
+                            videoTitle.textContent = data.title;
+                            videoAuthor.textContent = data.author;
+                            videoDuration.textContent = data.duration;
+                        }
+                        
+                        // Update messages
+                        updateMessages(data.messages);
+                        
+                        // Check if download is complete
+                        if (data.completed) {
+                            clearInterval(statusCheckInterval);
+                            
+                            if (data.error) {
+                                addMessage('⚠️ Download failed: ' + data.error);
+                            } else if (data.file_path) {
+                                addMessage('✅ Download completed successfully!');
+                                // Show completed downloads section with animation
+                                completedDownloads.style.display = 'block';
+                                completedDownloads.classList.add('fade-in');
+                                // Refresh downloads list
+                                loadCompletedDownloads();
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        addMessage('Error checking status: ' + error.message);
+                    });
+            }
+            
+            // Add a message to the log
+            function addMessage(message) {
+                const messageElement = document.createElement('div');
+                messageElement.innerHTML = message;
+                messageElement.classList.add('fade-in');
+                messagesContainer.appendChild(messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Update all messages
+            function updateMessages(messages) {
+                if (!messages || !Array.isArray(messages)) return;
+                
+                // Only add new messages
+                const currentMessages = messagesContainer.querySelectorAll('div').length;
+                
+                if (messages.length > currentMessages) {
+                    for (let i = currentMessages; i < messages.length; i++) {
+                        addMessage(messages[i]);
+                    }
+                }
+            }
+            
+            // Load completed downloads
+            function loadCompletedDownloads() {
+                fetch('/downloads')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length === 0) {
+                            downloadsList.innerHTML = '<p class="text-center text-secondary">No completed downloads yet</p>';
+                            return;
+                        }
+                        
+                        downloadsList.innerHTML = '';
+                        
+                        data.forEach((download, index) => {
+                            const downloadElement = document.createElement('div');
+                            downloadElement.className = 'download-item';
+                            downloadElement.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-1">${download.title || 'Unknown'}</h5>
+                                        <p class="mb-0 text-secondary small">${download.file_path}</p>
+                                    </div>
+                                    <a href="/downloads/${download.file_path}" class="btn btn-tech btn-sm" download>
+                                        <i class="fas fa-download me-1"></i> Download
+                                    </a>
+                                </div>
+                            `;
+                            
+                            // Add staggered animation
+                            setTimeout(() => {
+                                downloadElement.classList.add('fade-in');
+                                downloadsList.appendChild(downloadElement);
+                            }, 100 * index);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading downloads:', error);
+                        downloadsList.innerHTML = '<p class="text-center text-danger">Error loading downloads</p>';
+                    });
+            }
+            
+            // Refresh downloads button
+            refreshDownloadsBtn.addEventListener('click', loadCompletedDownloads);
+            
+            // Initial load of completed downloads
+            loadCompletedDownloads();
+            
+            // Handle clipboard paste
+            document.addEventListener('paste', function(e) {
+                urlInput.value = e.clipboardData.getData('text');
+                optionsContainer.style.display = 'block';
+                optionsContainer.classList.add('fade-in');
+            });
+            
+            // Add glow effects to buttons on hover
+            const buttons = document.querySelectorAll('.btn-tech, .download-btn');
+            buttons.forEach(button => {
+                button.addEventListener('mouseover', function() {
+                    this.style.boxShadow = '0 0 15px var(--primary-neon)';
+                });
+                
+                button.addEventListener('mouseout', function() {
+                    this.style.boxShadow = '';
+                });
+            });
+        });
+    </script>
+</body>
+</html> 
