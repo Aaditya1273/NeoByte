@@ -1,11 +1,6 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
 import os
-import threading
-import time
-from datetime import timedelta
-from pytube import YouTube, Playlist
 import uuid
-import json
 import logging
 import subprocess
 import shutil
@@ -20,9 +15,6 @@ logger = logging.getLogger('neobyte')
 
 app = Flask(__name__, static_folder='static')
 app.config['TITLE'] = 'NeoByte Downloader'
-
-# Store download tasks and their status
-downloads = {}
 
 # Path to ffmpeg from the YoutubeDownloaderApp folder
 FFMPEG_PATH = os.path.join(os.getcwd(), 'YoutubeDownloaderApp', 'ffmpeg.exe')
@@ -57,80 +49,25 @@ def download():
     if not url:
         return jsonify({'error': 'Please enter a YouTube URL'}), 400
     
-    # Create downloads directory if it doesn't exist
-    download_dir = os.path.join(os.getcwd(), 'downloads')
-    os.makedirs(download_dir, exist_ok=True)
+    # Create temp directory if it doesn't exist
+    temp_dir = os.path.join(os.getcwd(), 'temp')
+    os.makedirs(temp_dir, exist_ok=True)
     
     # Generate a unique ID for this download
     download_id = str(uuid.uuid4())
     
-    # Initialize download status
-    downloads[download_id] = {
-        'status': 'starting',
-        'progress': 0,
-        'title': '',
-        'author': '',
-        'duration': '',
-        'messages': ['Starting download...'],
-        'completed': False,
-        'error': None,
-        'file_path': None
-    }
-    
-    # Log download request
-    logger.info(f"Download requested: {url[:60]}... Type: {download_type}, Resolution: {resolution}")
-    
-    # Start download in a background thread
-    thread = threading.Thread(
-        target=process_download,
-        args=(download_id, url, download_type, resolution, download_dir)
-    )
-    thread.daemon = True
-    thread.start()
-    
-    return jsonify({'download_id': download_id})
-
-def process_download(download_id, url, download_type, resolution, output_dir):
     try:
-        # Check if it's a playlist
-        if "playlist" in url or "&list=" in url and not ("&index=" in url):
-            add_message(download_id, "Detected playlist URL. Starting playlist download...")
-            try:
-                playlist = Playlist(url)
-                add_message(download_id, f"Playlist: {playlist.title}")
-                add_message(download_id, f"Videos to download: {len(playlist.video_urls)}")
-                
-                for video_url in playlist.video_urls:
-                    add_message(download_id, f"Processing: {video_url}")
-                    download_single_video(download_id, video_url, download_type, resolution, output_dir)
-            except Exception as e:
-                add_message(download_id, f"Error with playlist: {str(e)}")
-                downloads[download_id]['error'] = str(e)
-                logger.error(f"Playlist download error: {str(e)}")
-        else:
-            # Single video download
-            download_single_video(download_id, url, download_type, resolution, output_dir)
-            
-    except Exception as e:
-        add_message(download_id, f"Error: {str(e)}")
-        downloads[download_id]['error'] = str(e)
-        logger.error(f"Download process error: {str(e)}")
-    finally:
-        downloads[download_id]['completed'] = True
-
-def download_single_video(download_id, url, download_type, resolution, output_dir):
-    try:
-        add_message(download_id, "Initializing download with yt-dlp (high compatibility)...")
-        
+        # Initialize yt-dlp for direct download
         import yt_dlp
         
-        # Configure yt-dlp options
+        # Configure yt-dlp options for direct download
+        output_template = os.path.join(temp_dir, f'{download_id}.%(ext)s')
+        
         ydl_opts = {
-            'outtmpl': os.path.join(output_dir, '%(title)s.%(ext)s'),
-            'progress_hooks': [lambda d: update_progress(download_id, d)],
+            'outtmpl': output_template,
             'quiet': True,
             'no_warnings': True,
-            'ffmpeg_location': FFMPEG_PATH,  # Use ffmpeg from YoutubeDownloaderApp
+            'ffmpeg_location': FFMPEG_PATH,
         }
         
         # Different format options based on download type and resolution
@@ -143,239 +80,72 @@ def download_single_video(download_id, url, download_type, resolution, output_di
                     'preferredquality': '192',
                 }],
             })
-            add_message(download_id, "Configured for audio download (MP3)...")
         else:
             # Video download with resolution selection
             if resolution == "highest":
                 ydl_opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
-                add_message(download_id, "Configured for highest quality video...")
             elif resolution == "lowest":
                 ydl_opts['format'] = 'worstvideo[ext=mp4]+worstaudio[ext=m4a]/worst[ext=mp4]/worst'
-                add_message(download_id, "Configured for lowest quality video (faster download)...")
             else:
                 # Try to match the requested resolution
                 ydl_opts['format'] = f'bestvideo[height<={resolution[:-1]}][ext=mp4]+bestaudio[ext=m4a]/best[height<={resolution[:-1]}][ext=mp4]/best'
-                add_message(download_id, f"Configured for {resolution} video...")
         
         # Extract info first to get metadata
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            add_message(download_id, "Extracting video information...")
-            info = ydl.extract_info(url, download=False)
+            info = ydl.extract_info(url, download=True)
             
-            # Update download info with video details
-            downloads[download_id]['title'] = info.get('title', 'Unknown title')
-            downloads[download_id]['author'] = info.get('uploader', 'Unknown uploader')
-            
-            # Format duration
-            duration_seconds = info.get('duration', 0)
-            duration = str(timedelta(seconds=duration_seconds))
-            if duration.startswith('0:'):
-                duration = duration[2:]
-            downloads[download_id]['duration'] = duration
-            
-            add_message(download_id, f"Title: {downloads[download_id]['title']}")
-            add_message(download_id, f"Author: {downloads[download_id]['author']}")
-            add_message(download_id, f"Duration: {duration}")
-            
-            # Now download the video/audio
-            add_message(download_id, "Starting download...")
-            ydl.download([url])
-            
-            # Get the output filename from ydl
-            filename = ydl.prepare_filename(info)
-            
-            # For audio downloads, update the extension to mp3
+            # Determine the output filename
             if download_type == 'audio':
-                filename = os.path.splitext(filename)[0] + '.mp3'
+                filename = os.path.join(temp_dir, f"{download_id}.mp3")
+            else:
+                filename = ydl.prepare_filename(info)
             
-            # Set the file path in the download info
-            downloads[download_id]['file_path'] = os.path.basename(filename)
-            add_message(download_id, f"Download completed: {os.path.basename(filename)}")
-            logger.info(f"Download completed for {url}: {os.path.basename(filename)}")
-    
-    except Exception as e:
-        error_message = f"Error downloading {url}: {str(e)}"
-        add_message(download_id, error_message)
-        downloads[download_id]['error'] = str(e)
-        logger.error(error_message)
-        
-        # Try native command-line approach with ffmpeg as a fallback
-        try:
-            add_message(download_id, "Trying native download method with ffmpeg...")
-            temp_dir = os.path.join(output_dir, 'temp')
-            os.makedirs(temp_dir, exist_ok=True)
+            # Ensure the file exists
+            if not os.path.exists(filename):
+                # Try with different extension if needed
+                possible_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith(download_id)]
+                if possible_files:
+                    filename = possible_files[0]
+                else:
+                    return jsonify({'error': 'Failed to download file'}), 500
             
-            # Generate temporary filename
-            temp_filename = os.path.join(temp_dir, f"download_{download_id}")
-            output_filename = os.path.join(output_dir, f"video_{download_id}.mp4")
-            
+            # Get original filename
+            original_filename = f"{info.get('title', 'video')}"
             if download_type == 'audio':
-                output_filename = os.path.join(output_dir, f"audio_{download_id}.mp3")
+                original_filename = f"{original_filename}.mp3"
+            else:
+                original_filename = f"{original_filename}.mp4"
             
-            # Use native ffmpeg command to download
-            command = [
-                FFMPEG_PATH,
-                '-i', url,
-                '-c', 'copy',
-                output_filename
-            ]
+            # Replace invalid characters in filename
+            original_filename = original_filename.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
             
-            add_message(download_id, "Running native ffmpeg download...")
-            process = subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True
+            # Serve the file directly to the user
+            response = send_file(
+                filename,
+                as_attachment=True,
+                download_name=original_filename,
+                conditional=False
             )
             
-            # Monitor progress
-            progress = 0
-            for line in process.stderr:
-                if "time=" in line:
-                    time_parts = line.split("time=")[1].split()[0].split(":")
-                    if len(time_parts) == 3:
-                        hours, minutes, seconds = time_parts
-                        current_seconds = (int(hours) * 3600) + (int(minutes) * 60) + float(seconds)
-                        if duration_seconds > 0:
-                            progress = (current_seconds / duration_seconds) * 100
-                            downloads[download_id]['progress'] = progress
-                
-                if progress % 10 < 1:  # Update message every ~10%
-                    add_message(download_id, f"Downloading: {progress:.1f}% complete")
+            # Clean up temp file after sending (schedule deletion)
+            @response.call_on_close
+            def cleanup():
+                try:
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                except:
+                    pass
             
-            # Wait for process to complete
-            process.wait()
-            
-            if process.returncode == 0:
-                downloads[download_id]['file_path'] = os.path.basename(output_filename)
-                add_message(download_id, f"Native download completed: {os.path.basename(output_filename)}")
-            else:
-                raise Exception("Native download failed with error code: " + str(process.returncode))
-            
-            # Clean up temp directory
-            shutil.rmtree(temp_dir, ignore_errors=True)
-                
-        except Exception as alt_error:
-            add_message(download_id, f"All download methods failed: {str(alt_error)}")
-
-def update_progress(download_id, d):
-    if d['status'] == 'downloading':
-        # Try to get percent complete
-        if '_percent_str' in d:
-            p = d.get('_percent_str', '0%').strip('%')
-            try:
-                downloads[download_id]['progress'] = float(p)
-            except:
-                pass
-        # Or calculate from bytes
-        elif 'downloaded_bytes' in d and 'total_bytes' in d and d['total_bytes'] > 0:
-            percentage = (d['downloaded_bytes'] / d['total_bytes']) * 100
-            downloads[download_id]['progress'] = percentage
+            return response
         
-        # Add download speed info to messages
-        if '_speed_str' in d and downloads[download_id]['progress'] % 10 < 1:  # Update message every ~10%
-            speed = d.get('_speed_str', 'Unknown speed')
-            eta = d.get('_eta_str', 'Unknown time remaining')
-            add_message(download_id, f"Downloading: {downloads[download_id]['progress']:.1f}% complete ({speed}, {eta} remaining)")
-    elif d['status'] == 'finished':
-        downloads[download_id]['progress'] = 100
-        add_message(download_id, "Download finished, processing file...")
-    elif d['status'] == 'error':
-        add_message(download_id, f"Error during download: {d.get('error', 'Unknown error')}")
-
-def add_message(download_id, message):
-    if download_id in downloads:
-        downloads[download_id]['messages'].append(message)
-
-@app.route('/status/<download_id>', methods=['GET'])
-def get_status(download_id):
-    if download_id not in downloads:
-        return jsonify({'error': 'Download not found'}), 404
-    
-    return jsonify(downloads[download_id])
-
-@app.route('/downloads/<path:filename>', methods=['GET'])
-def download_file(filename):
-    logger.info(f"File download requested: {filename}")
-    try:
-        # Get the full path of the file
-        file_path = os.path.join(os.getcwd(), 'downloads', filename)
-        
-        # Check if file exists
-        if not os.path.isfile(file_path):
-            logger.error(f"Download file not found: {file_path}")
-            return jsonify({'error': 'File not found'}), 404
-            
-        # Get file extension and set appropriate MIME type
-        _, ext = os.path.splitext(filename)
-        mime_type = 'application/octet-stream'  # Default
-        
-        if ext.lower() == '.mp4':
-            mime_type = 'video/mp4'
-        elif ext.lower() == '.mp3':
-            mime_type = 'audio/mpeg'
-        elif ext.lower() == '.webm':
-            mime_type = 'video/webm'
-        
-        # Log file size for troubleshooting
-        file_size = os.path.getsize(file_path)
-        logger.info(f"Sending file {filename} ({file_size} bytes) with MIME type {mime_type}")
-        
-        # Handle the download directly to avoid Flask's limitations
-        def generate():
-            with open(file_path, 'rb') as f:
-                chunk_size = 8192  # 8KB chunks
-                while True:
-                    chunk = f.read(chunk_size)
-                    if not chunk:
-                        break
-                    yield chunk
-        
-        # Create response with appropriate headers
-        response = app.response_class(
-            generate(),
-            mimetype=mime_type,
-            direct_passthrough=True
-        )
-        
-        # Set content disposition for download
-        response.headers.set(
-            'Content-Disposition', 
-            f'attachment; filename="{os.path.basename(filename)}"'
-        )
-        
-        # Set content length for better download progress tracking
-        response.headers.set(
-            'Content-Length',
-            str(file_size)
-        )
-        
-        # Add cache control headers
-        response.headers.set('Cache-Control', 'no-cache')
-        
-        return response
-            
     except Exception as e:
-        error_msg = f"Error downloading file {filename}: {str(e)}"
-        logger.error(error_msg)
-        return jsonify({'error': error_msg}), 500
-
-@app.route('/downloads', methods=['GET'])
-def list_downloads():
-    completed_downloads = []
-    for download_id, download in downloads.items():
-        if download['completed'] and download['file_path'] and not download['error']:
-            completed_downloads.append({
-                'id': download_id,
-                'title': download['title'],
-                'file_path': download['file_path']
-            })
-    
-    return jsonify(completed_downloads)
+        error_message = f"Error downloading {url}: {str(e)}"
+        logger.error(error_message)
+        return jsonify({'error': error_message}), 500
 
 if __name__ == '__main__':
-    # Ensure downloads directory exists
-    os.makedirs('downloads', exist_ok=True)
+    # Ensure temp directory exists
+    os.makedirs('temp', exist_ok=True)
     
     # Log application start
     logger.info("NeoByte Downloader application started")

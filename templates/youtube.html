@@ -533,42 +533,9 @@
                 </button>
             </div>
             
-            <!-- Video Information -->
-            <div class="video-info" id="video-info">
-                <div class="row">
-                    <div class="col-md-4 mb-3 mb-md-0">
-                        <img id="video-thumbnail" class="video-thumbnail" src="" alt="Video Thumbnail">
-                    </div>
-                    <div class="col-md-8">
-                        <h4 id="video-title" class="mb-2">Video Title</h4>
-                        <div class="video-metadata mb-3">
-                            <span id="video-author">Channel Name</span> • 
-                            <span id="video-duration">Duration</span>
-                        </div>
-                        <div class="mb-2">Download Progress: <span id="progress-text" class="fw-bold">0%</span></div>
-                        <div class="progress">
-                            <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Log Container -->
             <div class="log-container" id="log-container">
                 <div id="messages"></div>
-            </div>
-            
-            <!-- Completed Downloads -->
-            <div class="completed-downloads" id="completed-downloads">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i> Completed Downloads</h5>
-                    <button id="refresh-downloads" class="btn btn-sm btn-download">
-                        <i class="fas fa-sync-alt me-1"></i> Refresh
-                    </button>
-                </div>
-                <div id="downloads-list">
-                    <p class="text-center text-secondary">No completed downloads yet</p>
-                </div>
             </div>
         </div>
     </section>
@@ -586,21 +553,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             const urlInput = document.getElementById('url');
             const downloadButton = document.getElementById('download-button');
-            const videoInfo = document.getElementById('video-info');
-            const videoTitle = document.getElementById('video-title');
-            const videoAuthor = document.getElementById('video-author');
-            const videoDuration = document.getElementById('video-duration');
-            const videoThumbnail = document.getElementById('video-thumbnail');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
             const logContainer = document.getElementById('log-container');
             const messagesContainer = document.getElementById('messages');
-            const completedDownloads = document.getElementById('completed-downloads');
-            const downloadsList = document.getElementById('downloads-list');
-            const refreshDownloadsBtn = document.getElementById('refresh-downloads');
-            
-            let currentDownloadId = null;
-            let statusCheckInterval = null;
             
             // Download button click handler
             downloadButton.addEventListener('click', function() {
@@ -615,129 +569,64 @@
                 logContainer.style.display = 'block';
                 logContainer.classList.add('fade-in');
                 
+                // Add initial message
+                messagesContainer.innerHTML = '';
+                addMessage('⚡ Starting download process...');
+                
                 // Get selected options
                 const downloadType = document.querySelector('input[name="download_type"]:checked').value;
                 const resolution = document.getElementById('resolution').value;
-                
-                // Create form data
-                const formData = new FormData();
-                formData.append('url', url);
-                formData.append('download_type', downloadType);
-                formData.append('resolution', resolution);
                 
                 // Update button state
                 downloadButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
                 downloadButton.disabled = true;
                 
-                // Send request
-                fetch('/download', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    // Restore button
-                    downloadButton.innerHTML = '<i class="fas fa-download me-2"></i> START DOWNLOAD';
-                    downloadButton.disabled = false;
-                    
-                    if (data.error) {
-                        addMessage('Error: ' + data.error);
-                        return;
-                    }
-                    
-                    // Clear previous messages
-                    messagesContainer.innerHTML = '';
-                    progressBar.style.width = '0%';
-                    progressText.textContent = '0%';
-                    
-                    // Store the download ID
-                    currentDownloadId = data.download_id;
-                    
-                    // Start checking status
-                    if (statusCheckInterval) {
-                        clearInterval(statusCheckInterval);
-                    }
-                    
-                    statusCheckInterval = setInterval(checkDownloadStatus, 1000);
-                    addMessage('⚡ Download initiated. Fetching video data...');
-                })
-                .catch(error => {
-                    // Restore button
-                    downloadButton.innerHTML = '<i class="fas fa-download me-2"></i> START DOWNLOAD';
-                    downloadButton.disabled = false;
-                    
-                    addMessage('Error: ' + error.message);
-                });
-            });
-            
-            // Check download status
-            function checkDownloadStatus() {
-                if (!currentDownloadId) return;
+                // Create form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/download';
+                form.style.display = 'none';
                 
-                fetch(`/status/${currentDownloadId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            addMessage('Error: ' + data.error);
-                            clearInterval(statusCheckInterval);
-                            return;
-                        }
-                        
-                        // Update progress
-                        const progress = data.progress.toFixed(1);
-                        progressBar.style.width = `${progress}%`;
-                        progressText.textContent = `${progress}%`;
-                        
-                        // Update video info
-                        if (data.title && videoTitle.textContent === 'Video Title') {
-                            videoInfo.style.display = 'block';
-                            videoInfo.classList.add('fade-in');
-                            videoTitle.textContent = data.title;
-                            videoAuthor.textContent = data.author;
-                            videoDuration.textContent = data.duration;
-                            
-                            // Try to get thumbnail from YouTube
-                            if (urlInput.value.includes('youtube.com') || urlInput.value.includes('youtu.be')) {
-                                const videoId = extractYoutubeId(urlInput.value);
-                                if (videoId) {
-                                    videoThumbnail.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-                                }
-                            }
-                        }
-                        
-                        // Update messages
-                        updateMessages(data.messages);
-                        
-                        // Check if download is complete
-                        if (data.completed) {
-                            clearInterval(statusCheckInterval);
-                            
-                            if (data.error) {
-                                addMessage('⚠️ Download failed: ' + data.error);
-                            } else if (data.file_path) {
-                                addMessage('✅ Download completed successfully!');
-                                // Show completed downloads section
-                                completedDownloads.style.display = 'block';
-                                completedDownloads.classList.add('fade-in');
-                                // Refresh downloads list
-                                loadCompletedDownloads();
-                                
-                                // Automatically trigger download to user's device
-                                triggerDownload(data.file_path);
-                            }
-                        }
-                    })
-                    .catch(error => {
-                        addMessage('Error checking status: ' + error.message);
-                    });
-            }
-            
-            // Extract YouTube video ID from URL
-            function extractYoutubeId(url) {
-                const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-                const match = url.match(regExp);
-                return (match && match[7].length === 11) ? match[7] : false;
-            }
+                // Add URL
+                const urlField = document.createElement('input');
+                urlField.type = 'hidden';
+                urlField.name = 'url';
+                urlField.value = url;
+                form.appendChild(urlField);
+                
+                // Add download type
+                const typeField = document.createElement('input');
+                typeField.type = 'hidden';
+                typeField.name = 'download_type';
+                typeField.value = downloadType;
+                form.appendChild(typeField);
+                
+                // Add resolution
+                const resField = document.createElement('input');
+                resField.type = 'hidden';
+                resField.name = 'resolution';
+                resField.value = resolution;
+                form.appendChild(resField);
+                
+                // Add form to body and submit
+                document.body.appendChild(form);
+                
+                // Add status message
+                addMessage('🔍 Extracting video information...');
+                addMessage('⬇️ Once the file is ready, the download will begin automatically.');
+                addMessage('⏱️ Please wait while we process your request. This may take a minute for larger videos.');
+                
+                // Submit the form to start the download
+                form.submit();
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(form);
+                    // Restore button
+                    downloadButton.innerHTML = '<i class="fas fa-download me-2"></i> START DOWNLOAD';
+                    downloadButton.disabled = false;
+                }, 3000);
+            });
             
             // Add a message to the log
             function addMessage(message) {
@@ -748,116 +637,6 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
             
-            // Update all messages
-            function updateMessages(messages) {
-                if (!messages || !Array.isArray(messages)) return;
-                
-                // Only add new messages
-                const currentMessages = messagesContainer.querySelectorAll('div').length;
-                
-                if (messages.length > currentMessages) {
-                    for (let i = currentMessages; i < messages.length; i++) {
-                        addMessage(messages[i]);
-                    }
-                }
-            }
-            
-            // Function to trigger automatic download to user's device
-            function triggerDownload(filename) {
-                const downloadUrl = '/downloads/' + encodeURIComponent(filename);
-                addMessage('🔽 Starting download to your device...');
-                
-                fetch(downloadUrl)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok: ' + response.status);
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        const url = window.URL.createObjectURL(blob);
-                        const downloadLink = document.createElement('a');
-                        downloadLink.href = url;
-                        downloadLink.download = filename;
-                        document.body.appendChild(downloadLink);
-                        downloadLink.click();
-                        
-                        // Clean up
-                        setTimeout(() => {
-                            document.body.removeChild(downloadLink);
-                            window.URL.revokeObjectURL(url);
-                            addMessage('✅ File download complete! Check your downloads folder.');
-                        }, 100);
-                    })
-                    .catch(error => {
-                        console.error('Download error:', error);
-                        addMessage('⚠️ Error downloading file: ' + error.message);
-                        // Provide alternative download link
-                        addMessage(`<span class="text-warning">Try manual download: <a href="${downloadUrl}" download class="text-info" target="_blank">Click here</a></span>`);
-                    });
-            }
-            
-            // Load completed downloads
-            function loadCompletedDownloads() {
-                fetch('/downloads')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.length === 0) {
-                            downloadsList.innerHTML = '<p class="text-center text-secondary">No completed downloads yet</p>';
-                            return;
-                        }
-                        
-                        downloadsList.innerHTML = '';
-                        
-                        data.forEach(download => {
-                            const downloadElement = document.createElement('div');
-                            downloadElement.className = 'download-item';
-                            
-                            // Create safe file path for URLs
-                            const safeFilePath = encodeURIComponent(download.file_path);
-                            
-                            downloadElement.innerHTML = `
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h5 class="mb-1">${download.title || 'Unknown'}</h5>
-                                        <p class="mb-0 text-secondary small">${download.file_path}</p>
-                                    </div>
-                                    <div>
-                                        <button class="btn btn-download me-2 download-now" data-filename="${safeFilePath}">
-                                            <i class="fas fa-download me-1"></i> Save File
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-primary open-file" data-filename="${safeFilePath}">
-                                            <i class="fas fa-external-link-alt"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                            downloadsList.appendChild(downloadElement);
-                            
-                            // Add event listener to download button
-                            const downloadButton = downloadElement.querySelector('.download-now');
-                            downloadButton.addEventListener('click', function() {
-                                const filename = this.getAttribute('data-filename');
-                                triggerDownload(decodeURIComponent(filename));
-                            });
-                            
-                            // Add event listener to open file button
-                            const openButton = downloadElement.querySelector('.open-file');
-                            openButton.addEventListener('click', function() {
-                                const fileUrl = '/downloads/' + this.getAttribute('data-filename');
-                                window.open(fileUrl, '_blank');
-                            });
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error loading downloads:', error);
-                        downloadsList.innerHTML = '<p class="text-center text-danger">Error loading downloads</p>';
-                    });
-            }
-            
-            // Refresh downloads button
-            refreshDownloadsBtn.addEventListener('click', loadCompletedDownloads);
-            
             // Handle paste event to make it easier for users
             urlInput.addEventListener('paste', function() {
                 // Short delay to allow the paste to complete
@@ -867,9 +646,6 @@
                     }
                 }, 100);
             });
-            
-            // Load completed downloads on page load
-            loadCompletedDownloads();
         });
     </script>
 </body>
