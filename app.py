@@ -152,6 +152,110 @@ def download():
         logger.error(error_message)
         return jsonify({'error': error_message}), 500
 
+@app.route('/instagram_download', methods=['POST'])
+def instagram_download():
+    url = request.form.get('url')
+    
+    if not url:
+        return jsonify({'error': 'Please enter an Instagram URL'}), 400
+    
+    # Check if the URL is from Instagram
+    if not ('instagram.com' in url or 'instagr.am' in url):
+        return jsonify({'error': 'Please enter a valid Instagram URL'}), 400
+    
+    # Create temp directory if it doesn't exist
+    temp_dir = os.path.join(os.getcwd(), 'temp')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Generate a unique ID for this download
+    download_id = str(uuid.uuid4())
+    
+    try:
+        # Initialize yt-dlp for Instagram download
+        import yt_dlp
+        
+        # Configure yt-dlp options for Instagram download
+        output_template = os.path.join(temp_dir, f'{download_id}.%(ext)s')
+        
+        ydl_opts = {
+            'outtmpl': output_template,
+            'quiet': True,
+            'no_warnings': True,
+            'ffmpeg_location': FFMPEG_PATH,
+            'format': 'best',  # Get the best quality for Instagram
+            'cookiefile': None,  # No cookies needed for public content
+            'extract_flat': False,
+            'ignoreerrors': True  # Skip any errors
+        }
+        
+        # Extract info first to get metadata
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            logger.info(f"Downloading Instagram content from: {url}")
+            info = ydl.extract_info(url, download=True)
+            
+            if not info:
+                return jsonify({'error': 'Could not download content. The post may be private or not exist.'}), 400
+            
+            # Determine the output filename
+            filename = ydl.prepare_filename(info)
+            
+            # Ensure the file exists
+            if not os.path.exists(filename):
+                # Try with different extension if needed
+                possible_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith(download_id)]
+                if possible_files:
+                    filename = possible_files[0]
+                else:
+                    return jsonify({'error': 'Failed to download file'}), 500
+            
+            # Get original filename and content type
+            if 'title' in info and info['title']:
+                content_title = info['title']
+            else:
+                # Generate a title based on the type of content
+                if 'reel' in url:
+                    content_title = f"Instagram_Reel_{download_id[:8]}"
+                elif 'stories' in url:
+                    content_title = f"Instagram_Story_{download_id[:8]}"
+                else:
+                    content_title = f"Instagram_Post_{download_id[:8]}"
+            
+            # Get extension
+            _, ext = os.path.splitext(filename)
+            if not ext:
+                ext = '.mp4'  # Default to mp4 if no extension
+            
+            # Ensure proper extension
+            original_filename = f"{content_title}{ext}"
+            
+            # Replace invalid characters in filename
+            original_filename = original_filename.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+            
+            # Serve the file directly to the user
+            response = send_file(
+                filename,
+                as_attachment=True,
+                download_name=original_filename,
+                conditional=False
+            )
+            
+            # Clean up temp file after sending (schedule deletion)
+            @response.call_on_close
+            def cleanup():
+                try:
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                except:
+                    pass
+            
+            logger.info(f"Successfully downloaded Instagram content: {original_filename}")
+            return response
+            
+    except Exception as e:
+        error_message = f"Error downloading Instagram content from {url}: {str(e)}"
+        logger.error(error_message)
+        return jsonify({'error': error_message}), 500
+
 if __name__ == '__main__':
     # Ensure temp directory exists
     os.makedirs('temp', exist_ok=True)

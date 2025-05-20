@@ -473,7 +473,14 @@
     <section class="instagram-header">
         <div class="container">
             <h1 class="insta-title"><i class="fab fa-instagram insta-icon"></i>Instagram Downloader</h1>
-            <p class="mb-4">Download Reels, Stories, IGTV videos with just a single click</p>
+            <p class="mb-4">Download Reels, Stories, Posts, and IGTV videos with just a single click</p>
+            <div class="badges mb-4">
+                <span class="badge me-2" style="background: linear-gradient(45deg, var(--instagram-gradient-1), var(--instagram-gradient-2));">Reels</span>
+                <span class="badge me-2" style="background: linear-gradient(45deg, var(--instagram-gradient-2), var(--instagram-gradient-3));">Stories</span>
+                <span class="badge me-2" style="background: linear-gradient(45deg, var(--instagram-gradient-3), var(--instagram-gradient-1));">Photos</span>
+                <span class="badge me-2" style="background: linear-gradient(45deg, var(--instagram-gradient-1), var(--instagram-gradient-3));">IGTV</span>
+                <span class="badge" style="background: linear-gradient(45deg, var(--instagram-gradient-2), var(--instagram-gradient-1));">Carousel Posts</span>
+            </div>
         </div>
     </section>
     
@@ -488,6 +495,18 @@
                 <button id="download-button" class="download-btn">
                     <i class="fas fa-download me-2"></i> DOWNLOAD NOW
                 </button>
+                
+                <!-- Error message container -->
+                <div id="error-container" class="alert alert-danger mt-3" style="display: none;">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span id="error-message"></span>
+                </div>
+                
+                <!-- Status message container -->
+                <div id="status-container" class="alert alert-info mt-3" style="display: none;">
+                    <i class="fas fa-spinner fa-spin me-2"></i>
+                    <span id="status-message">Processing your request...</span>
+                </div>
             </div>
         </div>
     </section>
@@ -502,7 +521,7 @@
                     <div class="feature-card fade-in delay-1">
                         <i class="fas fa-bolt feature-icon"></i>
                         <h4>Lightning Fast</h4>
-                        <p>Download Instagram content in seconds with our high-speed servers</p>
+                        <p>Download Instagram Reels, Stories, and Posts in seconds with our high-speed servers</p>
                     </div>
                 </div>
                 
@@ -510,7 +529,7 @@
                     <div class="feature-card fade-in delay-2">
                         <i class="fas fa-shield-alt feature-icon"></i>
                         <h4>Private & Secure</h4>
-                        <p>We don't store your data or content on our servers</p>
+                        <p>We don't store your data or content on our servers. Downloads are processed in real-time.</p>
                     </div>
                 </div>
                 
@@ -518,7 +537,33 @@
                     <div class="feature-card fade-in delay-3">
                         <i class="fas fa-tachometer-alt feature-icon"></i>
                         <h4>High Quality</h4>
-                        <p>Download videos and reels in the highest available quality</p>
+                        <p>Download videos and reels in the highest available quality for the best viewing experience</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card fade-in delay-1">
+                        <i class="fas fa-film feature-icon"></i>
+                        <h4>Multiple Content Types</h4>
+                        <p>Download Reels, Stories, IGTV, photos, and carousel posts with just a single click</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card fade-in delay-2">
+                        <i class="fas fa-cloud-download-alt feature-icon"></i>
+                        <h4>Direct Downloads</h4>
+                        <p>Files download directly to your device with no ads, waiting, or redirects</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card fade-in delay-3">
+                        <i class="fas fa-mobile-alt feature-icon"></i>
+                        <h4>Mobile Friendly</h4>
+                        <p>Works perfectly on mobile devices - download content straight to your phone or tablet</p>
                     </div>
                 </div>
             </div>
@@ -534,26 +579,32 @@
                 <div class="col-lg-8 mx-auto">
                     <div class="step-card fade-in delay-1">
                         <div class="step-number">1</div>
-                        <h4>Copy the Instagram URL</h4>
-                        <p>Find the Reel, IGTV, or Story you want to download. Click the three dots (•••) and copy the link.</p>
+                        <h4>Find the Instagram Content</h4>
+                        <p>Open the Instagram app or website and navigate to the Reel, Story, Post, or IGTV video you want to download.</p>
                     </div>
                     
                     <div class="step-card fade-in delay-2">
                         <div class="step-number">2</div>
-                        <h4>Paste the URL above</h4>
-                        <p>Paste the copied URL into the input box at the top of this page.</p>
+                        <h4>Copy the URL</h4>
+                        <p>For Reels/Posts: Tap the three dots (⋯) and select "Copy Link"<br>
+                           For Stories: You'll need the direct story URL (only public stories can be downloaded)</p>
                     </div>
                     
                     <div class="step-card fade-in delay-3">
                         <div class="step-number">3</div>
-                        <h4>Click Download</h4>
-                        <p>Click the Download button and wait for the download process to complete.</p>
+                        <h4>Paste URL & Download</h4>
+                        <p>Paste the copied URL into the input box above and click the "DOWNLOAD NOW" button.</p>
                     </div>
                     
                     <div class="step-card fade-in delay-4">
                         <div class="step-number">4</div>
-                        <h4>Save the File</h4>
-                        <p>Once processed, the video will be ready to save to your device.</p>
+                        <h4>Save to Your Device</h4>
+                        <p>Once processed, the content will automatically download to your device. For mobile users, it will be saved to your downloads folder.</p>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4 fade-in delay-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Important:</strong> This tool is for downloading content from public Instagram accounts only. Please respect copyright and only download content for personal use.
                     </div>
                 </div>
             </div>
@@ -573,6 +624,30 @@
         document.addEventListener('DOMContentLoaded', function() {
             const urlInput = document.getElementById('url');
             const downloadButton = document.getElementById('download-button');
+            const errorContainer = document.getElementById('error-container');
+            const errorMessage = document.getElementById('error-message');
+            const statusContainer = document.getElementById('status-container');
+            const statusMessage = document.getElementById('status-message');
+            
+            // Function to show error message
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorContainer.style.display = 'block';
+                setTimeout(() => {
+                    errorContainer.style.display = 'none';
+                }, 10000); // Hide after 10 seconds
+            }
+            
+            // Function to show status message
+            function showStatus(message) {
+                statusMessage.textContent = message;
+                statusContainer.style.display = 'block';
+            }
+            
+            // Function to hide status message
+            function hideStatus() {
+                statusContainer.style.display = 'none';
+            }
             
             // Add animation for input when users paste content
             urlInput.addEventListener('paste', function() {
@@ -583,17 +658,77 @@
                 }, 100);
             });
             
-            // Placeholder for future Instagram download functionality
+            // Instagram download functionality
             downloadButton.addEventListener('click', function() {
                 const url = urlInput.value.trim();
                 
+                // Hide any previous messages
+                errorContainer.style.display = 'none';
+                hideStatus();
+                
                 if (!url) {
-                    alert('Please enter an Instagram URL');
+                    showError('Please enter an Instagram URL');
                     return;
                 }
                 
-                // For now, show a message - this will be replaced with actual functionality
-                alert('Coming soon: Instagram download feature is currently in development. Please try the YouTube downloader for now.');
+                // Check if it's an Instagram URL
+                if (!url.includes('instagram.com') && !url.includes('instagr.am')) {
+                    showError('Please enter a valid Instagram URL');
+                    return;
+                }
+                
+                // Update button state
+                downloadButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
+                downloadButton.disabled = true;
+                
+                // Show status message
+                showStatus('Downloading content from Instagram. This may take a few moments...');
+                
+                // Create form for direct download
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/instagram_download';
+                form.style.display = 'none';
+                
+                // Add event listeners to detect errors
+                window.addEventListener('error', function() {
+                    // If there's any error, restore button
+                    downloadButton.innerHTML = '<i class="fas fa-download me-2"></i> DOWNLOAD NOW';
+                    downloadButton.disabled = false;
+                    hideStatus();
+                    showError('An unexpected error occurred. Please try again.');
+                }, { once: true });
+                
+                // Add URL
+                const urlField = document.createElement('input');
+                urlField.type = 'hidden';
+                urlField.name = 'url';
+                urlField.value = url;
+                form.appendChild(urlField);
+                
+                // Add form to body and submit
+                document.body.appendChild(form);
+                
+                // Submit the form to start the download
+                form.submit();
+                
+                // Clean up and reset after a delay
+                setTimeout(() => {
+                    // Restore button
+                    downloadButton.innerHTML = '<i class="fas fa-download me-2"></i> DOWNLOAD NOW';
+                    downloadButton.disabled = false;
+                    
+                    // Update status message
+                    showStatus('If the download doesn\'t start automatically, try again or check if the content is from a private account.');
+                    
+                    // Clean up form
+                    document.body.removeChild(form);
+                    
+                    // Hide status after 15 seconds
+                    setTimeout(() => {
+                        hideStatus();
+                    }, 15000);
+                }, 5000);
             });
         });
     </script>
