@@ -3,7 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeoByte - YouTube Downloader</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>YouTube Video Downloader | Download YouTube Videos Free - NeoByte</title>
+    <meta name="description" content="Download YouTube videos in 4K, 2K, 1080p, 720p or convert to MP3 with NeoByte's free YouTube downloader. Fast, secure, no watermarks.">
+    <meta name="keywords" content="youtube downloader, download youtube videos, youtube to mp3, youtube converter, youtube video downloader, download youtube, free youtube downloader, 4k youtube download">
+    <meta name="author" content="NeoByte">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.base_url }}">
+    <meta property="og:title" content="YouTube Video Downloader | Download YouTube Videos Free - NeoByte">
+    <meta property="og:description" content="Download YouTube videos in 4K, 2K, 1080p or convert to MP3. Fast, secure and free with no watermarks.">
+    <meta property="og:image" content="{{ url_for('static', filename='img/youtube-downloader-preview.jpg', _external=True) }}">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ request.base_url }}">
+    <meta property="twitter:title" content="YouTube Video Downloader | Download YouTube Videos Free - NeoByte">
+    <meta property="twitter:description" content="Download YouTube videos in 4K, 2K, 1080p or convert to MP3. Fast, secure and free with no watermarks.">
+    <meta property="twitter:image" content="{{ url_for('static', filename='img/youtube-downloader-preview.jpg', _external=True) }}">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ request.base_url }}">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
     <style>

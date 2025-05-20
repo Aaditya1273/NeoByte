@@ -256,6 +256,175 @@ def instagram_download():
         logger.error(error_message)
         return jsonify({'error': error_message}), 500
 
+@app.route('/twitter_download', methods=['POST'])
+def twitter_download():
+    url = request.form.get('url')
+    
+    if not url:
+        return jsonify({'error': 'Please enter an X (Twitter) URL'}), 400
+    
+    # Normalize URL (handle both x.com and twitter.com)
+    if 'x.com' in url and 'twitter.com' not in url:
+        logger.info(f"Converting X URL to Twitter format: {url}")
+        url = url.replace('x.com', 'twitter.com')
+    
+    # Validate URL format
+    if not ('twitter.com' in url or 'x.com' in url):
+        return jsonify({'error': 'Please enter a valid X or Twitter post URL'}), 400
+    
+    # Create temp directory if it doesn't exist
+    temp_dir = os.path.join(os.getcwd(), 'temp')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Generate a unique ID for this download
+    download_id = str(uuid.uuid4())
+    
+    # Handle cookie file upload if provided
+    cookie_file = None
+    if 'cookie_file' in request.files and request.files['cookie_file'].filename:
+        try:
+            cookie_file = os.path.join(temp_dir, f'cookies_{download_id}.txt')
+            request.files['cookie_file'].save(cookie_file)
+            logger.info(f"Cookie file uploaded for download ID: {download_id}")
+        except Exception as e:
+            logger.error(f"Error saving cookie file: {str(e)}")
+            return jsonify({'error': 'Failed to process cookie file. Please try again.'}), 500
+    
+    try:
+        # Initialize yt-dlp for Twitter download
+        import yt_dlp
+        
+        # Configure yt-dlp options for Twitter download
+        output_template = os.path.join(temp_dir, f'{download_id}.%(ext)s')
+        
+        ydl_opts = {
+            'outtmpl': output_template,
+            'quiet': False,  # Enable some output for better debugging
+            'no_warnings': False,  # Show warnings for better debugging
+            'ffmpeg_location': FFMPEG_PATH,
+            'format': 'best',  # Get the best quality for Twitter
+            'cookiefile': cookie_file,  # Use cookie file if uploaded
+            'extract_flat': False,
+            'ignoreerrors': True,  # Skip any errors
+            'verbose': True  # Enable verbose output for debugging
+        }
+        
+        # Extract info first to get metadata
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            logger.info(f"Downloading X content from: {url}")
+            info = ydl.extract_info(url, download=True)
+            
+            if not info:
+                # Clean up cookie file
+                if cookie_file and os.path.exists(cookie_file):
+                    try:
+                        os.remove(cookie_file)
+                    except:
+                        pass
+                return jsonify({'error': 'Could not download content. The post may be private, not exist, or contain no media.'}), 400
+            
+            # Determine the output filename
+            filename = ydl.prepare_filename(info)
+            
+            # Ensure the file exists
+            if not os.path.exists(filename):
+                # Try with different extension if needed
+                possible_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith(download_id) and not f.startswith('cookies_')]
+                if possible_files:
+                    filename = possible_files[0]
+                else:
+                    # Clean up cookie file
+                    if cookie_file and os.path.exists(cookie_file):
+                        try:
+                            os.remove(cookie_file)
+                        except:
+                            pass
+                    return jsonify({'error': 'Failed to download file. The post may not contain downloadable media.'}), 500
+            
+            # Get original filename and content type
+            if 'title' in info and info['title']:
+                content_title = info['title']
+            else:
+                # Generate a title based on the account name if available
+                if 'uploader' in info and info['uploader']:
+                    content_title = f"X_Video_{info['uploader']}_{download_id[:6]}"
+                else:
+                    content_title = f"X_Video_{download_id[:8]}"
+            
+            # Get extension
+            _, ext = os.path.splitext(filename)
+            if not ext:
+                ext = '.mp4'  # Default to mp4 if no extension
+            
+            # Ensure proper extension
+            original_filename = f"{content_title}{ext}"
+            
+            # Replace invalid characters in filename
+            original_filename = original_filename.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+            
+            # Log file information
+            file_size = os.path.getsize(filename)
+            logger.info(f"X content downloaded: {original_filename} ({file_size} bytes)")
+            
+            # Serve the file directly to the user
+            response = send_file(
+                filename,
+                as_attachment=True,
+                download_name=original_filename,
+                conditional=False
+            )
+            
+            # Clean up temp files after sending (schedule deletion)
+            @response.call_on_close
+            def cleanup():
+                try:
+                    # Clean up downloaded file
+                    if os.path.exists(filename):
+                        os.remove(filename)
+                    
+                    # Clean up cookie file
+                    if cookie_file and os.path.exists(cookie_file):
+                        os.remove(cookie_file)
+                        
+                except Exception as e:
+                    logger.error(f"Error cleaning up temporary files: {str(e)}")
+            
+            logger.info(f"Successfully downloaded X content: {original_filename}")
+            return response
+            
+    except yt_dlp.utils.DownloadError as e:
+        error_message = str(e)
+        logger.error(f"yt-dlp download error for {url}: {error_message}")
+        
+        # Clean up cookie file if there was an error
+        if cookie_file and os.path.exists(cookie_file):
+            try:
+                os.remove(cookie_file)
+            except:
+                pass
+        
+        # Handle common error cases with more user-friendly messages
+        if "Unsupported URL" in error_message:
+            return jsonify({'error': 'This URL is not supported or does not contain media content'}), 400
+        elif "requires authentication" in error_message:
+            return jsonify({'error': 'This content is private and requires authentication. Please try uploading a cookies.txt file from a browser where you are logged in.'}), 403
+        elif "not exist" in error_message or "404" in error_message:
+            return jsonify({'error': 'The requested content does not exist'}), 404
+        else:
+            return jsonify({'error': f'Error downloading content: {error_message}'}), 500
+    except Exception as e:
+        error_message = f"Error downloading X content from {url}: {str(e)}"
+        logger.error(error_message)
+        
+        # Clean up cookie file if there was an error
+        if cookie_file and os.path.exists(cookie_file):
+            try:
+                os.remove(cookie_file)
+            except:
+                pass
+                
+        return jsonify({'error': error_message}), 500
+
 if __name__ == '__main__':
     # Ensure temp directory exists
     os.makedirs('temp', exist_ok=True)
