@@ -6,6 +6,17 @@ from datetime import timedelta
 from pytube import YouTube, Playlist
 import uuid
 import json
+import logging
+import subprocess
+import shutil
+
+# Set up logging
+logging.basicConfig(
+    filename='neobyte.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('neobyte')
 
 app = Flask(__name__, static_folder='static')
 app.config['TITLE'] = 'NeoByte Downloader'
@@ -13,9 +24,29 @@ app.config['TITLE'] = 'NeoByte Downloader'
 # Store download tasks and their status
 downloads = {}
 
+# Path to ffmpeg from the YoutubeDownloaderApp folder
+FFMPEG_PATH = os.path.join(os.getcwd(), 'YoutubeDownloaderApp', 'ffmpeg.exe')
+if not os.path.exists(FFMPEG_PATH):
+    FFMPEG_PATH = 'ffmpeg'  # Use system ffmpeg if not found
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/youtube')
+def youtube():
+    logger.info("YouTube download page accessed")
+    return render_template('youtube.html')
+
+@app.route('/instagram')
+def instagram():
+    logger.info("Instagram download page accessed")
+    return render_template('instagram.html')
+
+@app.route('/twitter')
+def twitter():
+    logger.info("X download page accessed")
+    return render_template('twitter.html')
 
 @app.route('/download', methods=['POST'])
 def download():
@@ -46,6 +77,9 @@ def download():
         'file_path': None
     }
     
+    # Log download request
+    logger.info(f"Download requested: {url[:60]}... Type: {download_type}, Resolution: {resolution}")
+    
     # Start download in a background thread
     thread = threading.Thread(
         target=process_download,
@@ -72,6 +106,7 @@ def process_download(download_id, url, download_type, resolution, output_dir):
             except Exception as e:
                 add_message(download_id, f"Error with playlist: {str(e)}")
                 downloads[download_id]['error'] = str(e)
+                logger.error(f"Playlist download error: {str(e)}")
         else:
             # Single video download
             download_single_video(download_id, url, download_type, resolution, output_dir)
@@ -79,68 +114,174 @@ def process_download(download_id, url, download_type, resolution, output_dir):
     except Exception as e:
         add_message(download_id, f"Error: {str(e)}")
         downloads[download_id]['error'] = str(e)
+        logger.error(f"Download process error: {str(e)}")
     finally:
         downloads[download_id]['completed'] = True
 
 def download_single_video(download_id, url, download_type, resolution, output_dir):
     try:
-        def progress_callback(stream, chunk, bytes_remaining):
-            total_size = stream.filesize
-            bytes_downloaded = total_size - bytes_remaining
-            percentage = (bytes_downloaded / total_size) * 100
+        add_message(download_id, "Initializing download with yt-dlp (high compatibility)...")
+        
+        import yt_dlp
+        
+        # Configure yt-dlp options
+        ydl_opts = {
+            'outtmpl': os.path.join(output_dir, '%(title)s.%(ext)s'),
+            'progress_hooks': [lambda d: update_progress(download_id, d)],
+            'quiet': True,
+            'no_warnings': True,
+            'ffmpeg_location': FFMPEG_PATH,  # Use ffmpeg from YoutubeDownloaderApp
+        }
+        
+        # Different format options based on download type and resolution
+        if download_type == 'audio':
+            ydl_opts.update({
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+            })
+            add_message(download_id, "Configured for audio download (MP3)...")
+        else:
+            # Video download with resolution selection
+            if resolution == "highest":
+                ydl_opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+                add_message(download_id, "Configured for highest quality video...")
+            elif resolution == "lowest":
+                ydl_opts['format'] = 'worstvideo[ext=mp4]+worstaudio[ext=m4a]/worst[ext=mp4]/worst'
+                add_message(download_id, "Configured for lowest quality video (faster download)...")
+            else:
+                # Try to match the requested resolution
+                ydl_opts['format'] = f'bestvideo[height<={resolution[:-1]}][ext=mp4]+bestaudio[ext=m4a]/best[height<={resolution[:-1]}][ext=mp4]/best'
+                add_message(download_id, f"Configured for {resolution} video...")
+        
+        # Extract info first to get metadata
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            add_message(download_id, "Extracting video information...")
+            info = ydl.extract_info(url, download=False)
+            
+            # Update download info with video details
+            downloads[download_id]['title'] = info.get('title', 'Unknown title')
+            downloads[download_id]['author'] = info.get('uploader', 'Unknown uploader')
+            
+            # Format duration
+            duration_seconds = info.get('duration', 0)
+            duration = str(timedelta(seconds=duration_seconds))
+            if duration.startswith('0:'):
+                duration = duration[2:]
+            downloads[download_id]['duration'] = duration
+            
+            add_message(download_id, f"Title: {downloads[download_id]['title']}")
+            add_message(download_id, f"Author: {downloads[download_id]['author']}")
+            add_message(download_id, f"Duration: {duration}")
+            
+            # Now download the video/audio
+            add_message(download_id, "Starting download...")
+            ydl.download([url])
+            
+            # Get the output filename from ydl
+            filename = ydl.prepare_filename(info)
+            
+            # For audio downloads, update the extension to mp3
+            if download_type == 'audio':
+                filename = os.path.splitext(filename)[0] + '.mp3'
+            
+            # Set the file path in the download info
+            downloads[download_id]['file_path'] = os.path.basename(filename)
+            add_message(download_id, f"Download completed: {os.path.basename(filename)}")
+            logger.info(f"Download completed for {url}: {os.path.basename(filename)}")
+    
+    except Exception as e:
+        error_message = f"Error downloading {url}: {str(e)}"
+        add_message(download_id, error_message)
+        downloads[download_id]['error'] = str(e)
+        logger.error(error_message)
+        
+        # Try native command-line approach with ffmpeg as a fallback
+        try:
+            add_message(download_id, "Trying native download method with ffmpeg...")
+            temp_dir = os.path.join(output_dir, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            # Generate temporary filename
+            temp_filename = os.path.join(temp_dir, f"download_{download_id}")
+            output_filename = os.path.join(output_dir, f"video_{download_id}.mp4")
+            
+            if download_type == 'audio':
+                output_filename = os.path.join(output_dir, f"audio_{download_id}.mp3")
+            
+            # Use native ffmpeg command to download
+            command = [
+                FFMPEG_PATH,
+                '-i', url,
+                '-c', 'copy',
+                output_filename
+            ]
+            
+            add_message(download_id, "Running native ffmpeg download...")
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+            
+            # Monitor progress
+            progress = 0
+            for line in process.stderr:
+                if "time=" in line:
+                    time_parts = line.split("time=")[1].split()[0].split(":")
+                    if len(time_parts) == 3:
+                        hours, minutes, seconds = time_parts
+                        current_seconds = (int(hours) * 3600) + (int(minutes) * 60) + float(seconds)
+                        if duration_seconds > 0:
+                            progress = (current_seconds / duration_seconds) * 100
+                            downloads[download_id]['progress'] = progress
+                
+                if progress % 10 < 1:  # Update message every ~10%
+                    add_message(download_id, f"Downloading: {progress:.1f}% complete")
+            
+            # Wait for process to complete
+            process.wait()
+            
+            if process.returncode == 0:
+                downloads[download_id]['file_path'] = os.path.basename(output_filename)
+                add_message(download_id, f"Native download completed: {os.path.basename(output_filename)}")
+            else:
+                raise Exception("Native download failed with error code: " + str(process.returncode))
+            
+            # Clean up temp directory
+            shutil.rmtree(temp_dir, ignore_errors=True)
+                
+        except Exception as alt_error:
+            add_message(download_id, f"All download methods failed: {str(alt_error)}")
+
+def update_progress(download_id, d):
+    if d['status'] == 'downloading':
+        # Try to get percent complete
+        if '_percent_str' in d:
+            p = d.get('_percent_str', '0%').strip('%')
+            try:
+                downloads[download_id]['progress'] = float(p)
+            except:
+                pass
+        # Or calculate from bytes
+        elif 'downloaded_bytes' in d and 'total_bytes' in d and d['total_bytes'] > 0:
+            percentage = (d['downloaded_bytes'] / d['total_bytes']) * 100
             downloads[download_id]['progress'] = percentage
         
-        yt = YouTube(url, on_progress_callback=progress_callback)
-        
-        # Update video info
-        downloads[download_id]['title'] = yt.title
-        downloads[download_id]['author'] = yt.author
-        
-        # Format duration
-        duration = str(timedelta(seconds=yt.length))
-        if duration.startswith('0:'):
-            duration = duration[2:]
-        downloads[download_id]['duration'] = duration
-        
-        add_message(download_id, f"Title: {yt.title}")
-        add_message(download_id, f"Author: {yt.author}")
-        add_message(download_id, f"Duration: {duration}")
-        
-        if download_type == "audio":
-            # Download audio
-            add_message(download_id, "Downloading audio only...")
-            stream = yt.streams.filter(only_audio=True).get_audio_only()
-            file_path = stream.download(output_path=output_dir)
-            
-            # Convert to MP3
-            base, ext = os.path.splitext(file_path)
-            new_file = base + '.mp3'
-            os.rename(file_path, new_file)
-            file_path = new_file
-            add_message(download_id, f"Converted to MP3: {os.path.basename(new_file)}")
-        else:
-            # Download video
-            add_message(download_id, "Downloading video...")
-            if resolution == "highest":
-                stream = yt.streams.filter(progressive=True).get_highest_resolution()
-            elif resolution == "lowest":
-                stream = yt.streams.filter(progressive=True).get_lowest_resolution()
-            else:
-                # Try to get the requested resolution, fall back to highest available
-                stream = yt.streams.filter(progressive=True, resolution=resolution).first()
-                if not stream:
-                    add_message(download_id, f"Resolution {resolution} not available, using highest available...")
-                    stream = yt.streams.filter(progressive=True).get_highest_resolution()
-            
-            add_message(download_id, f"Selected stream: {stream.resolution}, {stream.mime_type}")
-            file_path = stream.download(output_path=output_dir)
-        
-        downloads[download_id]['file_path'] = os.path.basename(file_path)
-        add_message(download_id, f"Download completed: {os.path.basename(file_path)}")
-        
-    except Exception as e:
-        add_message(download_id, f"Error downloading {url}: {str(e)}")
-        downloads[download_id]['error'] = str(e)
+        # Add download speed info to messages
+        if '_speed_str' in d and downloads[download_id]['progress'] % 10 < 1:  # Update message every ~10%
+            speed = d.get('_speed_str', 'Unknown speed')
+            eta = d.get('_eta_str', 'Unknown time remaining')
+            add_message(download_id, f"Downloading: {downloads[download_id]['progress']:.1f}% complete ({speed}, {eta} remaining)")
+    elif d['status'] == 'finished':
+        downloads[download_id]['progress'] = 100
+        add_message(download_id, "Download finished, processing file...")
+    elif d['status'] == 'error':
+        add_message(download_id, f"Error during download: {d.get('error', 'Unknown error')}")
 
 def add_message(download_id, message):
     if download_id in downloads:
@@ -155,7 +296,69 @@ def get_status(download_id):
 
 @app.route('/downloads/<path:filename>', methods=['GET'])
 def download_file(filename):
-    return send_from_directory('downloads', filename, as_attachment=True)
+    logger.info(f"File download requested: {filename}")
+    try:
+        # Get the full path of the file
+        file_path = os.path.join(os.getcwd(), 'downloads', filename)
+        
+        # Check if file exists
+        if not os.path.isfile(file_path):
+            logger.error(f"Download file not found: {file_path}")
+            return jsonify({'error': 'File not found'}), 404
+            
+        # Get file extension and set appropriate MIME type
+        _, ext = os.path.splitext(filename)
+        mime_type = 'application/octet-stream'  # Default
+        
+        if ext.lower() == '.mp4':
+            mime_type = 'video/mp4'
+        elif ext.lower() == '.mp3':
+            mime_type = 'audio/mpeg'
+        elif ext.lower() == '.webm':
+            mime_type = 'video/webm'
+        
+        # Log file size for troubleshooting
+        file_size = os.path.getsize(file_path)
+        logger.info(f"Sending file {filename} ({file_size} bytes) with MIME type {mime_type}")
+        
+        # Handle the download directly to avoid Flask's limitations
+        def generate():
+            with open(file_path, 'rb') as f:
+                chunk_size = 8192  # 8KB chunks
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+        
+        # Create response with appropriate headers
+        response = app.response_class(
+            generate(),
+            mimetype=mime_type,
+            direct_passthrough=True
+        )
+        
+        # Set content disposition for download
+        response.headers.set(
+            'Content-Disposition', 
+            f'attachment; filename="{os.path.basename(filename)}"'
+        )
+        
+        # Set content length for better download progress tracking
+        response.headers.set(
+            'Content-Length',
+            str(file_size)
+        )
+        
+        # Add cache control headers
+        response.headers.set('Cache-Control', 'no-cache')
+        
+        return response
+            
+    except Exception as e:
+        error_msg = f"Error downloading file {filename}: {str(e)}"
+        logger.error(error_msg)
+        return jsonify({'error': error_msg}), 500
 
 @app.route('/downloads', methods=['GET'])
 def list_downloads():
@@ -173,4 +376,9 @@ def list_downloads():
 if __name__ == '__main__':
     # Ensure downloads directory exists
     os.makedirs('downloads', exist_ok=True)
+    
+    # Log application start
+    logger.info("NeoByte Downloader application started")
+    
+    # Run the app
     app.run(debug=True) 

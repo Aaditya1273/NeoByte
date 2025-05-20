@@ -24,6 +24,7 @@ var/
 venv/
 ENV/
 env/
+.env/
 
 # IDE specific files
 .idea/
@@ -60,16 +61,39 @@ downloads/
 *.mp3
 *.webm
 *.m4a
+*.mkv
+*.avi
+*.flv
+*.mov
+*.wmv
+*.ogg
 *.part
 log.txt
 *.log
+neobyte.log
 
 # Windows specific
 desktop.ini
 Thumbs.db
 ehthumbs.db
+$RECYCLE.BIN/
 
-# Large binary files
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Application specific
+YoutubeDownloaderApp/
 *.zip
 *.exe
-YoutubeDownloader.win-x64.zip 
+YoutubeDownloader.win-x64.zip
+*.bat.bak
+*.log.*
+temp/
+tmp/
+
+# Runtime files
+.pytest_cache/
+__pycache__/ 
