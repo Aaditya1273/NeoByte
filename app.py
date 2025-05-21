@@ -4,6 +4,7 @@ import uuid
 import logging
 import subprocess
 import shutil
+import browser_downloader  # Import the browser downloader
 
 # Set up logging
 logging.basicConfig(
@@ -57,78 +58,140 @@ def download():
     download_id = str(uuid.uuid4())
     
     try:
-        # Initialize yt-dlp for direct download
-        import yt_dlp
-        
-        # Configure yt-dlp options for direct download
-        output_template = os.path.join(temp_dir, f'{download_id}.%(ext)s')
-        
-        ydl_opts = {
-            'outtmpl': output_template,
-            'quiet': True,
-            'no_warnings': True,
-            'ffmpeg_location': FFMPEG_PATH,
-        }
-        
-        # Different format options based on download type and resolution
-        if download_type == 'audio':
-            ydl_opts.update({
-                'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-            })
-        else:
-            # Video download with resolution selection
-            if resolution == "highest":
-                ydl_opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
-            elif resolution == "lowest":
-                ydl_opts['format'] = 'worstvideo[ext=mp4]+worstaudio[ext=m4a]/worst[ext=mp4]/worst'
-            elif resolution == "2160p":
-                # Specific format for 4K resolution (2160p)
-                ydl_opts['format'] = 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best'
-            elif resolution == "1440p":
-                # Specific format for 2K resolution (1440p)
-                ydl_opts['format'] = 'bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best'
-            elif resolution == "1080p":
-                # Specific format for Full HD resolution (1080p)
-                ydl_opts['format'] = 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best'
-            else:
-                # Try to match the requested resolution
-                ydl_opts['format'] = f'bestvideo[height<={resolution[:-1]}][ext=mp4]+bestaudio[ext=m4a]/best[height<={resolution[:-1]}][ext=mp4]/best'
-        
-        # Extract info first to get metadata
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
+        # First try with browser downloader which bypasses bot detection
+        try:
+            logger.info(f"Attempting to download with browser downloader: {url}")
             
-            # Determine the output filename
-            if download_type == 'audio':
-                filename = os.path.join(temp_dir, f"{download_id}.mp3")
-            else:
-                filename = ydl.prepare_filename(info)
+            is_audio = download_type == 'audio'
+            file_path, error = browser_downloader.download_with_quality(
+                url, 
+                resolution,
+                is_audio,
+                temp_dir,
+                f"{download_id}.{'mp3' if is_audio else 'mp4'}"
+            )
             
-            # Ensure the file exists
-            if not os.path.exists(filename):
-                # Try with different extension if needed
-                possible_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith(download_id)]
-                if possible_files:
-                    filename = possible_files[0]
+            if file_path and os.path.exists(file_path):
+                # Get original filename from the browser downloader
+                video_info = browser_downloader.get_video_info(url)
+                if video_info:
+                    title = video_info["title"]
+                    # Clean filename
+                    title = title.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+                    original_filename = f"{title}.{'mp3' if is_audio else 'mp4'}"
                 else:
-                    return jsonify({'error': 'Failed to download file'}), 500
-            
-            # Get original filename
-            original_filename = f"{info.get('title', 'video')}"
-            if download_type == 'audio':
-                original_filename = f"{original_filename}.mp3"
+                    original_filename = f"youtube_{download_id}.{'mp3' if is_audio else 'mp4'}"
+                
+                # Serve the file
+                response = send_file(
+                    file_path,
+                    as_attachment=True,
+                    download_name=original_filename,
+                    conditional=False
+                )
+                
+                # Clean up temp file after sending
+                @response.call_on_close
+                def cleanup():
+                    try:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                    except:
+                        pass
+                
+                logger.info(f"Successfully downloaded with browser downloader: {original_filename}")
+                return response
             else:
-                original_filename = f"{original_filename}.mp4"
+                logger.error(f"Browser downloader failed: {error}")
+                # Fall through to other methods
+        except Exception as browser_error:
+            logger.error(f"Browser downloader error: {str(browser_error)}")
+            # Fall through to other methods
+        
+        # If browser downloader failed, try with pytube
+        try:
+            from pytube import YouTube
+            import re
+            
+            # Fix for pytube age-restricted videos
+            def bypass_age_gate(url):
+                try:
+                    url = url.replace("watch?v=", "embed/")
+                    return url
+                except:
+                    return url
+                    
+            # Try to process with pytube
+            logger.info(f"Attempting to download with pytube: {url}")
+            
+            # Bypass age gate if needed
+            embed_url = bypass_age_gate(url)
+            
+            # Initialize pytube YouTube object
+            yt = YouTube(url)
+            
+            # Get video title for filename
+            video_title = yt.title
+            # Clean filename
+            video_title = re.sub(r'[\\/*?:"<>|]', "", video_title)
+            
+            # Determine file path
+            if download_type == 'audio':
+                # Audio download
+                output_file = os.path.join(temp_dir, f"{download_id}.mp3")
+                stream = yt.streams.filter(only_audio=True).first()
+                
+                # Download the file
+                file_path = stream.download(output_path=temp_dir, filename=f"{download_id}.mp4")
+                
+                # Convert to mp3 if ffmpeg is available
+                if os.path.exists(FFMPEG_PATH):
+                    try:
+                        subprocess.run([
+                            FFMPEG_PATH, '-i', file_path, 
+                            '-vn', '-ab', '192k', '-ar', '44100', '-y', 
+                            output_file
+                        ], check=True, capture_output=True)
+                        
+                        # Remove the original mp4 file
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                            
+                        filename = output_file
+                        original_filename = f"{video_title}.mp3"
+                    except Exception as e:
+                        logger.error(f"Error converting to MP3: {str(e)}")
+                        # If conversion fails, just use the mp4
+                        filename = file_path
+                        original_filename = f"{video_title}.mp4"
+                else:
+                    # No ffmpeg, just rename the file
+                    filename = file_path
+                    original_filename = f"{video_title}.mp4" 
+            else:
+                # Video download
+                if resolution == "highest":
+                    stream = yt.streams.get_highest_resolution()
+                elif resolution == "lowest":
+                    stream = yt.streams.filter(progressive=True).order_by('resolution').first()
+                elif resolution in ["2160p", "1440p", "1080p", "720p", "480p", "360p"]:
+                    # Extract the numeric value
+                    res_value = resolution[:-1]  # Remove 'p'
+                    # Find the closest matching resolution
+                    stream = yt.streams.filter(res=resolution, file_extension='mp4').first()
+                    if not stream:
+                        stream = yt.streams.get_highest_resolution()
+                else:
+                    stream = yt.streams.get_highest_resolution()
+                
+                # Download the file
+                filename = stream.download(output_path=temp_dir, filename=f"{download_id}.mp4")
+                original_filename = f"{video_title}.mp4"
             
             # Replace invalid characters in filename
             original_filename = original_filename.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
             
-            # Serve the file directly to the user
+            # Serve the file
             response = send_file(
                 filename,
                 as_attachment=True,
@@ -136,7 +199,7 @@ def download():
                 conditional=False
             )
             
-            # Clean up temp file after sending (schedule deletion)
+            # Clean up temp file after sending
             @response.call_on_close
             def cleanup():
                 try:
@@ -145,8 +208,111 @@ def download():
                 except:
                     pass
             
+            logger.info(f"Successfully downloaded with pytube: {original_filename}")
             return response
-        
+            
+        except Exception as pytube_error:
+            logger.error(f"Pytube download failed: {str(pytube_error)}")
+            logger.info("Falling back to yt-dlp with alternative options...")
+            
+            # Fallback to yt-dlp with special options to bypass bot detection
+            import yt_dlp
+            
+            # Configure yt-dlp options with bypass settings
+            output_template = os.path.join(temp_dir, f'{download_id}.%(ext)s')
+            
+            ydl_opts = {
+                'outtmpl': output_template,
+                'quiet': True,
+                'no_warnings': True,
+                'ffmpeg_location': FFMPEG_PATH,
+                # Try to bypass bot detection
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android', 'web'],
+                        'player_skip': ['js', 'configs', 'webpage']
+                    }
+                },
+                # Use a mobile user agent
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Android 12; Mobile; rv:68.0) Gecko/68.0 Firefox/96.0',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
+            }
+            
+            # Add format options
+            if download_type == 'audio':
+                ydl_opts.update({
+                    'format': 'bestaudio/best',
+                    'postprocessors': [{
+                        'key': 'FFmpegExtractAudio',
+                        'preferredcodec': 'mp3',
+                        'preferredquality': '192',
+                    }],
+                })
+            else:
+                # Video download with resolution selection
+                if resolution == "highest":
+                    ydl_opts['format'] = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best'
+                elif resolution == "lowest":
+                    ydl_opts['format'] = 'worstvideo[ext=mp4]+worstaudio[ext=m4a]/worst[ext=mp4]/worst'
+                elif resolution == "2160p":
+                    ydl_opts['format'] = 'bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160][ext=mp4]/best'
+                elif resolution == "1440p":
+                    ydl_opts['format'] = 'bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440][ext=mp4]/best'
+                elif resolution == "1080p":
+                    ydl_opts['format'] = 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best'
+                else:
+                    ydl_opts['format'] = f'bestvideo[height<={resolution[:-1]}][ext=mp4]+bestaudio[ext=m4a]/best[height<={resolution[:-1]}][ext=mp4]/best'
+            
+            # Extract and download
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                
+                # Determine the output filename
+                if download_type == 'audio':
+                    filename = os.path.join(temp_dir, f"{download_id}.mp3")
+                else:
+                    filename = ydl.prepare_filename(info)
+                
+                # Ensure the file exists
+                if not os.path.exists(filename):
+                    # Try with different extension if needed
+                    possible_files = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if f.startswith(download_id)]
+                    if possible_files:
+                        filename = possible_files[0]
+                    else:
+                        return jsonify({'error': 'Failed to download file'}), 500
+                
+                # Get original filename
+                original_filename = f"{info.get('title', 'video')}"
+                if download_type == 'audio':
+                    original_filename = f"{original_filename}.mp3"
+                else:
+                    original_filename = f"{original_filename}.mp4"
+                
+                # Replace invalid characters in filename
+                original_filename = original_filename.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+                
+                # Serve the file directly to the user
+                response = send_file(
+                    filename,
+                    as_attachment=True,
+                    download_name=original_filename,
+                    conditional=False
+                )
+                
+                # Clean up temp file after sending (schedule deletion)
+                @response.call_on_close
+                def cleanup():
+                    try:
+                        if os.path.exists(filename):
+                            os.remove(filename)
+                    except:
+                        pass
+                
+                return response
+
     except Exception as e:
         error_message = f"Error downloading {url}: {str(e)}"
         logger.error(error_message)

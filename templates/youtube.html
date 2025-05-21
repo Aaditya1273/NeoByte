@@ -471,6 +471,112 @@
         .fade-in {
             animation: fadeIn 0.5s ease-out forwards;
         }
+        
+        /* Help Section Styles */
+        .help-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(0, 195, 255, 0.1);
+        }
+        
+        .help-title {
+            color: var(--text-color);
+            font-weight: 700;
+            font-size: 1.8rem;
+            position: relative;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        
+        .cyber-card {
+            background-color: rgba(20, 25, 45, 0.7);
+            border: 1px solid rgba(0, 195, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .cyber-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 15px rgba(0, 195, 255, 0.2);
+        }
+        
+        .card-header {
+            background-color: rgba(25, 30, 50, 0.7);
+            color: var(--text-color);
+            font-weight: 600;
+            border-bottom: 1px solid rgba(0, 195, 255, 0.1);
+            padding: 1rem 1.5rem;
+        }
+        
+        .card-header h5 {
+            margin-bottom: 0;
+            color: var(--primary-neon);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+            color: var(--text-secondary);
+        }
+        
+        .custom-link {
+            color: var(--primary-neon);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .custom-link:hover {
+            text-shadow: 0 0 8px var(--primary-neon);
+        }
+        
+        .privacy-note {
+            color: var(--text-secondary);
+            background-color: rgba(20, 25, 45, 0.7);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            border-left: 3px solid var(--primary-neon);
+        }
+        
+        .feature-card {
+            background-color: rgba(20, 25, 45, 0.7);
+            border: 1px solid rgba(0, 195, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2), 0 0 10px rgba(0, 195, 255, 0.2);
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary-neon);
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--primary-neon), var(--youtube-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 5px rgba(0, 255, 221, 0.4));
+        }
+        
+        .feature-card h5 {
+            color: var(--text-color);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -514,49 +620,61 @@
     <!-- Download Form -->
     <section class="download-form">
         <div class="container">
-            <!-- URL Input -->
-            <div class="input-container fade-in">
-                <div class="mb-3">
-                    <label for="url" class="form-label">YouTube URL</label>
-                    <input type="text" id="url" class="form-control url-input" placeholder="Paste your YouTube video or playlist link here...">
-                </div>
-            </div>
-            
-            <!-- Download Options -->
-            <div class="download-options fade-in">
-                <div class="row mb-4">
-                    <div class="col-md-6 mb-3 mb-md-0">
-                        <label class="form-label">Download Type</label>
-                        <div class="d-flex">
-                            <div class="form-check me-4">
-                                <input class="form-check-input" type="radio" name="download_type" id="video-type" value="video" checked>
-                                <label class="form-check-label" for="video-type">Video</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="download_type" id="audio-type" value="audio">
-                                <label class="form-check-label" for="audio-type">Audio (MP3)</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <label for="resolution" class="form-label">Video Quality</label>
-                        <select class="form-select" id="resolution">
-                            <option value="highest">Highest Quality</option>
-                            <option value="2160p">4K (2160p)</option>
-                            <option value="1440p">2K (1440p)</option>
-                            <option value="1080p">Full HD (1080p)</option>
-                            <option value="720p">HD (720p)</option>
-                            <option value="480p">SD (480p)</option>
-                            <option value="360p">360p</option>
-                            <option value="lowest">Lowest Quality (Faster)</option>
-                        </select>
+            <!-- Form with multipart enctype for file uploads -->
+            <form id="downloadForm" action="/download" method="post" enctype="multipart/form-data">
+                <!-- URL Input -->
+                <div class="input-container fade-in">
+                    <div class="mb-3">
+                        <label for="url" class="form-label"><i class="fas fa-link me-2"></i>YouTube URL</label>
+                        <input type="text" id="url" name="url" class="form-control url-input" placeholder="Paste your YouTube video or playlist link here..." required>
                     </div>
                 </div>
                 
-                <button id="download-button" class="download-btn">
-                    <i class="fas fa-download me-2"></i> START DOWNLOAD
-                </button>
+                <!-- Download Options -->
+                <div class="download-options fade-in">
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label class="form-label">Download Type</label>
+                            <div class="d-flex">
+                                <div class="form-check me-4">
+                                    <input class="form-check-input" type="radio" name="download_type" id="video-type" value="video" checked>
+                                    <label class="form-check-label" for="video-type">Video</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="download_type" id="audio-type" value="audio">
+                                    <label class="form-check-label" for="audio-type">Audio (MP3)</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6" id="resolutionRow">
+                            <label for="resolution" class="form-label">Video Quality</label>
+                            <select class="form-select" id="resolution" name="resolution">
+                                <option value="highest">Highest Quality</option>
+                                <option value="2160p">4K (2160p)</option>
+                                <option value="1440p">2K (1440p)</option>
+                                <option value="1080p">Full HD (1080p)</option>
+                                <option value="720p">HD (720p)</option>
+                                <option value="480p">SD (480p)</option>
+                                <option value="360p">360p</option>
+                                <option value="lowest">Lowest Quality (Faster)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="downloadBtn" class="download-btn">
+                        <span id="loadingSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                        <i class="fas fa-download me-2"></i> START DOWNLOAD
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Result Container (for success/error messages) -->
+            <div id="resultContainer" class="alert mt-4 d-none">
+                <div id="successMessage" class="alert alert-success d-none">
+                    <i class="fas fa-check-circle me-2"></i> Download successful! Video is being saved to your computer.
+                </div>
+                <div id="errorMessage" class="alert alert-danger d-none"></div>
             </div>
             
             <!-- Log Container -->
@@ -577,13 +695,37 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const downloadForm = document.getElementById('downloadForm');
             const urlInput = document.getElementById('url');
-            const downloadButton = document.getElementById('download-button');
+            const downloadTypeRadios = document.querySelectorAll('input[name="download_type"]');
+            const resolutionSelect = document.getElementById('resolution');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const resultContainer = document.getElementById('resultContainer');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
             const logContainer = document.getElementById('log-container');
             const messagesContainer = document.getElementById('messages');
             
-            // Download button click handler
-            downloadButton.addEventListener('click', function() {
+            // Initialize tooltips
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+            
+            // Update resolution select visibility based on download type
+            downloadTypeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'video') {
+                        document.getElementById('resolutionRow').classList.remove('d-none');
+                    } else {
+                        document.getElementById('resolutionRow').classList.add('d-none');
+                    }
+                });
+            });
+            
+            // Handle form submission
+            downloadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
                 const url = urlInput.value.trim();
                 
                 if (!url) {
@@ -591,67 +733,101 @@
                     return;
                 }
                 
-                // Show log container
+                // Show log container for feedback
                 logContainer.style.display = 'block';
                 logContainer.classList.add('fade-in');
-                
-                // Add initial message
                 messagesContainer.innerHTML = '';
+                
+                // Add initial messages
                 addMessage('⚡ Starting download process...');
-                
-                // Get selected options
-                const downloadType = document.querySelector('input[name="download_type"]:checked').value;
-                const resolution = document.getElementById('resolution').value;
-                
-                // Update button state
-                downloadButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processing...';
-                downloadButton.disabled = true;
-                
-                // Create form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/download';
-                form.style.display = 'none';
-                
-                // Add URL
-                const urlField = document.createElement('input');
-                urlField.type = 'hidden';
-                urlField.name = 'url';
-                urlField.value = url;
-                form.appendChild(urlField);
-                
-                // Add download type
-                const typeField = document.createElement('input');
-                typeField.type = 'hidden';
-                typeField.name = 'download_type';
-                typeField.value = downloadType;
-                form.appendChild(typeField);
-                
-                // Add resolution
-                const resField = document.createElement('input');
-                resField.type = 'hidden';
-                resField.name = 'resolution';
-                resField.value = resolution;
-                form.appendChild(resField);
-                
-                // Add form to body and submit
-                document.body.appendChild(form);
-                
-                // Add status message
                 addMessage('🔍 Extracting video information...');
-                addMessage('⬇️ Once the file is ready, the download will begin automatically.');
-                addMessage('⏱️ Please wait while we process your request. This may take a minute for larger videos.');
                 
-                // Submit the form to start the download
-                form.submit();
+                // Show loading state
+                downloadBtn.disabled = true;
+                loadingSpinner.classList.remove('d-none');
+                errorMessage.classList.add('d-none');
+                successMessage.classList.add('d-none');
+                resultContainer.classList.add('d-none');
                 
-                // Clean up
-                setTimeout(() => {
-                    document.body.removeChild(form);
-                    // Restore button
-                    downloadButton.innerHTML = '<i class="fas fa-download me-2"></i> START DOWNLOAD';
-                    downloadButton.disabled = false;
-                }, 3000);
+                // Create FormData object to handle file upload
+                const formData = new FormData(downloadForm);
+                
+                // Send form data with fetch
+                fetch('/download', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (response.ok) {
+                        addMessage('✅ Video information retrieved successfully!');
+                        addMessage('⬇️ Starting download...');
+                        
+                        // For successful downloads, get the filename from headers if available
+                        const disposition = response.headers.get('Content-Disposition');
+                        let filename = 'youtube-download';
+                        
+                        if (disposition && disposition.indexOf('attachment') !== -1) {
+                            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                            const matches = filenameRegex.exec(disposition);
+                            if (matches != null && matches[1]) {
+                                filename = matches[1].replace(/['"]/g, '');
+                            }
+                        }
+                        
+                        // For successful response, handle the blob and download
+                        return response.blob().then(blob => {
+                            const url = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.style.display = 'none';
+                            a.href = url;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            window.URL.revokeObjectURL(url);
+                            
+                            // Add success message
+                            addMessage('🎉 Download complete! File: ' + filename);
+                            
+                            // Reset form state
+                            downloadBtn.disabled = false;
+                            loadingSpinner.classList.add('d-none');
+                            
+                            // Show success message
+                            successMessage.classList.remove('d-none');
+                            resultContainer.classList.remove('d-none');
+                            
+                            // Hide success message after 10 seconds
+                            setTimeout(() => {
+                                successMessage.classList.add('d-none');
+                                resultContainer.classList.add('d-none');
+                            }, 10000);
+                        });
+                    } else {
+                        // For error responses, show the error message
+                        return response.json().then(data => {
+                            throw new Error(data.error || 'Failed to download video');
+                        });
+                    }
+                })
+                .catch(error => {
+                    // Display error in log
+                    addMessage('❌ Error: ' + error.message);
+                    
+                    // Display error in alert
+                    downloadBtn.disabled = false;
+                    loadingSpinner.classList.add('d-none');
+                    errorMessage.textContent = error.message;
+                    errorMessage.classList.remove('d-none');
+                    resultContainer.classList.remove('d-none');
+                    
+                    // Scroll to the help section if it's a bot verification error
+                    if (error.message.includes('Sign in to confirm') || 
+                        error.message.includes('bot') || 
+                        error.message.includes('authentication') ||
+                        error.message.includes('cookies')) {
+                        document.querySelector('.help-section').scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
             });
             
             // Add a message to the log
@@ -663,15 +839,27 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
             
-            // Handle paste event to make it easier for users
-            urlInput.addEventListener('paste', function() {
-                // Short delay to allow the paste to complete
-                setTimeout(() => {
-                    if (urlInput.value.trim()) {
-                        urlInput.classList.add('is-valid');
-                    }
-                }, 100);
+            // URL validation with visual feedback
+            urlInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                const isValid = isValidYouTubeUrl(value);
+                
+                if (value === '') {
+                    this.classList.remove('is-valid', 'is-invalid');
+                } else if (isValid) {
+                    this.classList.add('is-valid');
+                    this.classList.remove('is-invalid');
+                } else {
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                }
             });
+            
+            // Simple YouTube URL validation
+            function isValidYouTubeUrl(url) {
+                const pattern = /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube(-nocookie)?\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/;
+                return pattern.test(url);
+            }
         });
     </script>
 </body>

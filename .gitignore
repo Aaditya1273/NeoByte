@@ -25,12 +25,16 @@ venv/
 ENV/
 env/
 .env/
+.venv/
+pythonenv*/
 
 # IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
+*.sublime-workspace
+*.sublime-project
 
 # Distribution / packaging
 .Python
@@ -50,6 +54,8 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+.hypothesis/
+.pytest_cache/
 
 # Translations
 *.mo
@@ -83,6 +89,20 @@ $RECYCLE.BIN/
 .AppleDouble
 .LSOverride
 ._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux specific
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
 
 # Application specific
 YoutubeDownloaderApp/
@@ -96,4 +116,46 @@ tmp/
 
 # Runtime files
 .pytest_cache/
-__pycache__/ 
+__pycache__/
+
+# Web application specific
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.pnp/
+.pnp.js
+.next/
+out/
+.nuxt/
+.output/
+.vercel/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# User uploads and static files
+/static/uploads/
+/media/
+/public/uploads/
+/static/img/user_uploads/
+
+# Cached data
+/cache/
+.sass-cache/
+.eslintcache
+
+# Backup files
+*.bak
+*.backup
+*~
+*.swp 
