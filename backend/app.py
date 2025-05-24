@@ -54,9 +54,19 @@ def download():
     if not url:
         return jsonify({'error': 'Please enter a YouTube URL'}), 400
     
-    # Create temp directory if it doesn't exist
-    temp_dir = os.path.join(os.getcwd(), 'temp')
+    # Create a temporary download directory that will be cleaned after each download
+    # This directory will only temporarily hold files during processing
+    temp_dir = os.path.join(os.getcwd(), 'downloads')
     os.makedirs(temp_dir, exist_ok=True)
+    
+    # Clean any existing files in the directory to prevent accumulation
+    for filename in os.listdir(temp_dir):
+        file_path = os.path.join(temp_dir, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            logger.error(f"Error cleaning temporary file {file_path}: {e}")
     
     # Generate a unique ID for this download
     download_id = str(uuid.uuid4())
@@ -67,15 +77,14 @@ def download():
             logger.info(f"Attempting to download with browser downloader: {url}")
             
             is_audio = download_type == 'audio'
-            file_path, error = browser_downloader.download_with_quality(
+            # Modified to use streaming download instead of temp files
+            stream, filename, error = browser_downloader.stream_with_quality(
                 url, 
                 resolution,
-                is_audio,
-                temp_dir,
-                f"{download_id}.{'mp3' if is_audio else 'mp4'}"
+                is_audio
             )
             
-            if file_path and os.path.exists(file_path):
+            if stream and filename:
                 # Get original filename from the browser downloader
                 video_info = browser_downloader.get_video_info(url)
                 if video_info:
@@ -94,14 +103,15 @@ def download():
                     conditional=False
                 )
                 
-                # Clean up temp file after sending
+                # Clean up temp file immediately after sending
                 @response.call_on_close
                 def cleanup():
                     try:
                         if os.path.exists(file_path):
                             os.remove(file_path)
-                    except:
-                        pass
+                            logger.info(f"Removed temporary file: {file_path}")
+                    except Exception as e:
+                        logger.error(f"Error removing temporary file: {e}")
                 
                 logger.info(f"Successfully downloaded with browser downloader: {original_filename}")
                 return response
@@ -203,14 +213,15 @@ def download():
                 conditional=False
             )
             
-            # Clean up temp file after sending
+            # Clean up temp file immediately after sending
             @response.call_on_close
             def cleanup():
                 try:
                     if os.path.exists(filename):
                         os.remove(filename)
-                except:
-                    pass
+                        logger.info(f"Removed temporary file: {filename}")
+                except Exception as e:
+                    logger.error(f"Error removing temporary file: {e}")
             
             logger.info(f"Successfully downloaded with pytube: {original_filename}")
             return response
@@ -271,7 +282,9 @@ def download():
             
             # Extract and download
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                # Get information and download the video
                 info = ydl.extract_info(url, download=True)
+                logger.info(f"Downloaded with yt-dlp to temporary location for immediate delivery to user")
                 
                 # Determine the output filename
                 if download_type == 'audio':
@@ -684,6 +697,23 @@ def twitter_download():
                 pass
                 
         return jsonify({'error': error_message}), 500
+
+@app.route('/cleanup', methods=['GET'])
+def cleanup_temp_files():
+    """Admin route to clean all temporary files"""
+    temp_dir = os.path.join(os.getcwd(), 'temp')
+    if os.path.exists(temp_dir):
+        cleaned = 0
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path):
+                    os.unlink(file_path)
+                    cleaned += 1
+            except Exception as e:
+                logger.error(f"Error cleaning file {file_path}: {e}")
+        return jsonify({'message': f'Cleaned {cleaned} temporary files'})
+    return jsonify({'message': 'No temporary directory found'})
 
 if __name__ == '__main__':
     # Ensure temp directory exists
