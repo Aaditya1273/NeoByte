@@ -1,3 +1,5 @@
+**🛑 This tool is only for personal use and educational purposes only. Do not misuse.**
+---
 # 🚀 NeoByte Downloader
 
 *The #1 free and open-source social media downloader with 4K support. A sleek, futuristic, and cross-platform tool built with Python and Flask.*
