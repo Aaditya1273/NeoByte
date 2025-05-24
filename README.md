@@ -1,18 +1,20 @@
-**🛑 This tool is only for personal use and educational purposes only. Do not misuse.**
+
+
+## **🛑 This tool is only for personal use and educational purposes only. Do not misuse.**
 ---
 # 🚀 NeoByte Downloader
 
 *The #1 free and open-source social media downloader with 4K support. A sleek, futuristic, and cross-platform tool built with Python and Flask.*
-
 
 ---
 
 ## ✨ Features at a Glance:
 
 * 📥 **Multi-Platform Support**:
-  * ▶️ **YouTube** - Videos, playlists, and shorts in up to 4K quality
-  * 📸 **Instagram** - Reels, stories, and posts in HD quality
-  * 🐦 **X/Twitter** - Videos and GIFs with no quality loss
+
+  * ▶️ **YT** - Videos, playlists, and shorts in up to 4K quality
+  * 📸 **IG** - Reels, stories, and posts in HD quality
+  * 🐦 **Twitter** - Videos and GIFs with no quality loss
 * 🎧 **Audio Extraction** - Convert any video to high-quality MP3
 * 💻 **Cross-platform** - Works on Windows, macOS, Linux, and Android
 * 🗂️ **Smart Download Management** - Organize your downloads efficiently
@@ -26,26 +28,32 @@
 ## ⚙️ Installation:
 
 1. **Clone the Repository**
+
    ```bash
    git clone https://github.com/Aaditya1273/NeoByte.git
    cd NeoByte
    ```
 
 2. **Install Dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Run the Application**
+
    ```bash
    python app.py
    ```
+
    Or use the provided batch script:
+
    ```bash
    ./run_web_downloader.bat   # On Windows
    ```
 
 ---
+
 ## 🧪 Tech Stack
 
 * 🐍 **Backend**: Python 3.12 with Flask 2.3.3
@@ -56,16 +64,11 @@
 * 💾 **Storage**: Local storage for user preferences and download history
 * 🔄 **API**: RESTful architecture for seamless client-server communication
 
-
-
 ---
 
-
 **Note**: This project is free to use for personal purposes. 🚫 No commercial redistribution allowed.
-
 
 ---
 
 *Made with ❤️ by the NeoByte*
-
 
