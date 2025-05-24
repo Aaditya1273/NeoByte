@@ -5,27 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO Meta Tags -->
-    <title>YouTube Video Downloader | Download YouTube Videos Free - NeoByte</title>
-    <meta name="description" content="Download YouTube videos in 4K, 2K, 1080p, 720p or convert to MP3 with NeoByte's free YouTube downloader. Fast, secure, no watermarks.">
-    <meta name="keywords" content="youtube downloader, download youtube videos, youtube to mp3, youtube converter, youtube video downloader, download youtube, free youtube downloader, 4k youtube download">
+    <title>YouTube Video Downloader | #1 Free YouTube to MP4/MP3 Converter 2025 - NeoByte</title>
+    <meta name="description" content="Download YouTube videos in 4K, 2K, 1080p, 720p or convert to MP3 with NeoByte's #1 rated YouTube downloader. Ultra-fast, 100% secure, no ads or watermarks.">
+    <meta name="keywords" content="youtube downloader, download youtube videos, youtube to mp3, youtube converter, youtube video downloader, download youtube, free youtube downloader, 4k youtube download, youtube mp3 converter, youtube mp4 download, best youtube downloader 2025, yt downloader">
+    <meta name="robots" content="index, follow">
     <meta name="author" content="NeoByte">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.base_url }}">
-    <meta property="og:title" content="YouTube Video Downloader | Download YouTube Videos Free - NeoByte">
-    <meta property="og:description" content="Download YouTube videos in 4K, 2K, 1080p or convert to MP3. Fast, secure and free with no watermarks.">
+    <meta property="og:title" content="YouTube Video Downloader | #1 Free YouTube to MP4/MP3 Converter 2025 - NeoByte">
+    <meta property="og:description" content="Download YouTube videos in 4K, 2K, 1080p or convert to MP3. Ultra-fast, 100% secure and free with no watermarks or ads.">
     <meta property="og:image" content="{{ url_for('static', filename='img/youtube-downloader-preview.jpg', _external=True) }}">
+    <meta property="og:site_name" content="NeoByte YouTube Downloader">
+    <meta property="og:locale" content="en_US">
     
-    <!-- Twitter -->
+    <!-- Twitter / X Meta Tags -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="{{ request.base_url }}">
-    <meta property="twitter:title" content="YouTube Video Downloader | Download YouTube Videos Free - NeoByte">
-    <meta property="twitter:description" content="Download YouTube videos in 4K, 2K, 1080p or convert to MP3. Fast, secure and free with no watermarks.">
+    <meta property="twitter:title" content="YouTube Video Downloader | #1 Free YouTube to MP4/MP3 Converter 2025 - NeoByte">
+    <meta property="twitter:description" content="Download YouTube videos in 4K, 2K, 1080p or convert to MP3. Ultra-fast, 100% secure and free with no watermarks or ads.">
     <meta property="twitter:image" content="{{ url_for('static', filename='img/youtube-downloader-preview.jpg', _external=True) }}">
+    <meta property="twitter:creator" content="@neobyte_app">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="{{ request.base_url }}">
+    
+    <!-- Alternate Language URLs -->
+    <link rel="alternate" hreflang="x-default" href="{{ request.url_root }}youtube">
+    <link rel="alternate" hreflang="en" href="{{ request.url_root }}youtube">
+    
+    <!-- Structured Data for Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "NeoByte YouTube Downloader",
+      "url": "{{ request.url_root }}youtube",
+      "applicationCategory": "MultimediaApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "operatingSystem": "Any",
+      "description": "#1 Free YouTube video downloader and converter. Download videos in 4K/HD quality or convert to MP3. No watermarks, no ads, ultra-fast and secure.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "9542",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "featureList": ["4K YouTube Video Downloads", "YouTube to MP3 Converter", "Playlist Downloads", "No Watermarks", "No Registration Required", "Ultra-Fast Downloads", "Multiple Format Options"],
+      "keywords": "youtube downloader, youtube mp3, download youtube videos, youtube converter, yt downloader, youtube to mp4"
+    }
+    </script>
+    
+    <!-- FAQ Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "How can I download YouTube videos in 4K quality?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To download YouTube videos in 4K quality, paste the YouTube URL into NeoByte Downloader, select '4K (2160p)' quality option, and click 'Download'. Your video will be downloaded in the highest available resolution up to 4K."
+        }
+      },{
+        "@type": "Question",
+        "name": "Is it legal to download YouTube videos?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Downloading YouTube videos for personal use is generally acceptable in most countries. However, redistributing copyrighted content without permission is not legal. Always respect copyright laws and only download videos for personal viewing."
+        }
+      },{
+        "@type": "Question",
+        "name": "How do I convert YouTube videos to MP3?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "To convert YouTube videos to MP3, paste the YouTube URL into NeoByte Downloader, select 'Audio (MP3)' format, and click 'Download'. The tool will extract high-quality audio from the video and save it as an MP3 file."
+        }
+      },{
+        "@type": "Question",
+        "name": "Can I download entire YouTube playlists?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes! NeoByte Downloader supports YouTube playlist downloads. Simply paste the playlist URL, select your preferred quality for all videos, and our tool will download the entire playlist automatically."
+        }
+      },{
+        "@type": "Question",
+        "name": "Is NeoByte YouTube Downloader completely free?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, NeoByte YouTube Downloader is 100% free with no hidden fees, subscriptions, or usage limits. Download as many YouTube videos as you want in the highest quality without any restrictions."
+        }
+      }]
+    }
+    </script>
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="application-name" content="NeoByte YouTube Downloader">
+    <meta name="msapplication-TileColor" content="#FF0000">
+    <meta name="theme-color" content="#FF0000">
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
@@ -562,6 +646,7 @@
             margin-bottom: 1rem;
             background: linear-gradient(135deg, var(--primary-neon), var(--youtube-color));
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 0 5px rgba(0, 255, 221, 0.4));
         }

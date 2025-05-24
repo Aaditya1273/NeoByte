@@ -337,10 +337,61 @@ def instagram_download():
     download_id = str(uuid.uuid4())
     
     try:
-        # Initialize yt-dlp for Instagram download
+        # Try browser downloader first (more reliable for Instagram)
+        try:
+            logger.info(f"Attempting Instagram download with browser method: {url}")
+            
+            # Use browser downloader for Instagram content
+            file_path, error = browser_downloader.download_instagram_content(
+                url, 
+                temp_dir,
+                f"{download_id}.mp4"
+            )
+            
+            if file_path and os.path.exists(file_path):
+                # Get content info
+                content_info = browser_downloader.get_instagram_info(url)
+                if content_info and content_info.get('title'):
+                    title = content_info['title']
+                    # Clean filename
+                    title = title.replace('/', '_').replace('\\', '_').replace(':', '_').replace('*', '_').replace('?', '_').replace('"', '_').replace('<', '_').replace('>', '_').replace('|', '_')
+                    original_filename = f"{title}.mp4"
+                else:
+                    # Generate filename based on URL type
+                    if 'reel' in url.lower():
+                        original_filename = f"Instagram_Reel_{download_id[:8]}.mp4"
+                    elif 'stories' in url.lower():
+                        original_filename = f"Instagram_Story_{download_id[:8]}.mp4"
+                    else:
+                        original_filename = f"Instagram_Post_{download_id[:8]}.mp4"
+                
+                # Serve the file
+                response = send_file(
+                    file_path,
+                    as_attachment=True,
+                    download_name=original_filename,
+                    conditional=False
+                )
+                
+                # Clean up temp file after sending
+                @response.call_on_close
+                def cleanup():
+                    try:
+                        if os.path.exists(file_path):
+                            os.remove(file_path)
+                    except:
+                        pass
+                
+                logger.info(f"Successfully downloaded Instagram content: {original_filename}")
+                return response
+            
+        except Exception as browser_error:
+            logger.warning(f"Browser downloader failed: {str(browser_error)}")
+        
+        # Fallback to yt-dlp with enhanced options
         import yt_dlp
         
-        # Configure yt-dlp options for Instagram download
+        # Configure yt-dlp options for Instagram download with authentication support
         output_template = os.path.join(temp_dir, f'{download_id}.%(ext)s')
         
         ydl_opts = {
@@ -348,19 +399,41 @@ def instagram_download():
             'quiet': True,
             'no_warnings': True,
             'ffmpeg_location': FFMPEG_PATH,
-            'format': 'best',  # Get the best quality for Instagram
-            'cookiefile': None,  # No cookies needed for public content
+            'format': 'best[height<=1080]/best',  # Limit to 1080p to avoid issues
             'extract_flat': False,
-            'ignoreerrors': True  # Skip any errors
+            'ignoreerrors': True,
+            'no_check_certificate': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'referer': 'https://www.instagram.com/',
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Accept-Encoding': 'gzip,deflate',
+                'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+                'Keep-Alive': '300',
+                'Connection': 'keep-alive',
+            }
         }
         
         # Extract info first to get metadata
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             logger.info(f"Downloading Instagram content from: {url}")
-            info = ydl.extract_info(url, download=True)
+            
+            try:
+                info = ydl.extract_info(url, download=True)
+            except yt_dlp.utils.ExtractorError as e:
+                if 'login' in str(e).lower() or 'private' in str(e).lower():
+                    return jsonify({
+                        'error': 'This Instagram content is private or requires login. Please try with a public post/reel.'
+                    }), 400
+                else:
+                    raise e
             
             if not info:
-                return jsonify({'error': 'Could not download content. The post may be private or not exist.'}), 400
+                return jsonify({
+                    'error': 'Could not download content. The post may be private, deleted, or not accessible.'
+                }), 400
             
             # Determine the output filename
             filename = ydl.prepare_filename(info)
@@ -372,16 +445,16 @@ def instagram_download():
                 if possible_files:
                     filename = possible_files[0]
                 else:
-                    return jsonify({'error': 'Failed to download file'}), 500
+                    return jsonify({'error': 'Failed to download file. Content may be protected or unavailable.'}), 500
             
             # Get original filename and content type
             if 'title' in info and info['title']:
                 content_title = info['title']
             else:
                 # Generate a title based on the type of content
-                if 'reel' in url:
+                if 'reel' in url.lower():
                     content_title = f"Instagram_Reel_{download_id[:8]}"
-                elif 'stories' in url:
+                elif 'stories' in url.lower():
                     content_title = f"Instagram_Story_{download_id[:8]}"
                 else:
                     content_title = f"Instagram_Post_{download_id[:8]}"
@@ -405,7 +478,7 @@ def instagram_download():
                 conditional=False
             )
             
-            # Clean up temp file after sending (schedule deletion)
+            # Clean up temp file after sending
             @response.call_on_close
             def cleanup():
                 try:
@@ -420,7 +493,24 @@ def instagram_download():
     except Exception as e:
         error_message = f"Error downloading Instagram content from {url}: {str(e)}"
         logger.error(error_message)
-        return jsonify({'error': error_message}), 500
+        
+        # Provide more specific error messages
+        if 'login' in str(e).lower():
+            return jsonify({
+                'error': 'This Instagram content requires authentication. Please try with a public post or reel.'
+            }), 400
+        elif 'private' in str(e).lower():
+            return jsonify({
+                'error': 'This Instagram account or post is private and cannot be downloaded.'
+            }), 400
+        elif 'not found' in str(e).lower():
+            return jsonify({
+                'error': 'Instagram content not found. The post may have been deleted or the URL is incorrect.'
+            }), 404
+        else:
+            return jsonify({
+                'error': 'Failed to download Instagram content. Please try again or check if the content is publicly accessible.'
+            }), 500
 
 @app.route('/twitter_download', methods=['POST'])
 def twitter_download():
@@ -599,4 +689,4 @@ if __name__ == '__main__':
     logger.info("NeoByte Downloader application started")
     
     # Run the app
-    app.run(debug=True) 
+    app.run(debug=True)

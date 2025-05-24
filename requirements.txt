@@ -1,5 +1,6 @@
 flask==2.3.3
-yt-dlp==2023.12.30
+yt-dlp>=2024.12.13
 pytube==15.0.0
 selenium==4.16.0
-webdriver-manager==4.0.1 
+webdriver-manager==4.0.1
+requests>=2.31.0

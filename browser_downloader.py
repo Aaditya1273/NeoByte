@@ -237,18 +237,71 @@ def download_with_quality(url, quality, is_audio, output_dir, filename=None):
         logger.error(f"Error in download_with_quality: {str(e)}")
         return None, str(e)
 
+def download_instagram_content(url, output_dir, filename):
+    """Download Instagram content using browser automation"""
+    try:
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        try:
+            driver.get(url)
+            time.sleep(3)
+            
+            # Look for video elements
+            video_elements = driver.find_elements(By.TAG_NAME, "video")
+            
+            if video_elements:
+                video_url = video_elements[0].get_attribute("src")
+                if video_url:
+                    # Download the video
+                    response = requests.get(video_url, stream=True)
+                    if response.status_code == 200:
+                        output_path = os.path.join(output_dir, filename)
+                        with open(output_path, 'wb') as f:
+                            for chunk in response.iter_content(chunk_size=8192):
+                                f.write(chunk)
+                        return output_path, None
+            
+            return None, "No video content found"
+            
+        finally:
+            driver.quit()
+            
+    except Exception as e:
+        return None, str(e)
 
-# Example usage:
-if __name__ == "__main__":
-    url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-    output_dir = "downloads"
-    
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Download video in 720p
-    file_path, error = download_with_quality(url, "720p", False, output_dir)
-    
-    if file_path:
-        print(f"Successfully downloaded to: {file_path}")
-    else:
-        print(f"Download failed: {error}") 
+def get_instagram_info(url):
+    """Get Instagram content information"""
+    try:
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        try:
+            driver.get(url)
+            time.sleep(2)
+            
+            # Try to get title from meta tags
+            title_element = driver.find_element(By.TAG_NAME, "title")
+            title = title_element.get_attribute("textContent") if title_element else "Instagram Content"
+            
+            return {"title": title.replace(" • Instagram", "").strip()}
+            
+        finally:
+            driver.quit()
+            
+    except Exception as e:
+        logger.error(f"Error getting Instagram info: {str(e)}")
+        return None
